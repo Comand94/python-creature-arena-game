@@ -1,6 +1,7 @@
 from __future__ import annotations  # type hinting instance of class to it's own functions
 import random  # random damage, status chance and hit chance
 
+testing_wout_type = False #testing balance w/out type relationships
 
 # type of move's initial damage or status effect
 # creature's types might be different to types of moves it has
@@ -31,7 +32,7 @@ class Type:
         if self.__isNewTypeRelationship__(weakness):
             self.weaknesses.append(weakness)
 
-    # a type this type of creature is resilient to - deals less damage, less status chance
+    # a type this type of creature is resilient to - deals less damage, extra status chance
     def __addResistances__(self, resistance: Type):
         if self.__isNewTypeRelationship__(resistance):
             self.resistances.append(resistance)
@@ -47,7 +48,7 @@ class StatusEffect:
 
     def __init__(self, name: str, type: Type, damage_low: int = 0, damage_high: int = 0,
                  aim_mod: int = 0, defense_mod: int = 0, damage_mod: int = 0, damage_mod_type: Type = None,
-                 status_duration: int = 0, stun_duration: int = 0,
+                 status_duration: int = 0, stun_duration: int = -1,
                  thorn_damage_low: int = 0, thorn_damage_high: int = 0):
         self.name = name
         self.type = type
@@ -61,21 +62,19 @@ class StatusEffect:
         self.damage_mod = damage_mod
         # if damage_mod_type is None, modifier applies to all attack types
         self.damage_mod_type = damage_mod_type
+        # duration of 0 means current turn only (no damage ticks will be applied, but effects like defense, thorn, etc.),
+        # duration of -1 means no duration
+        # this means a move that stuns opponent out of action only in current turn is possible to implement,
+        # or a move like firewall which gives the fire dragon creature thorn for current turn only,
+        # but it is impossible to trigger damage over time or heal over time without ticking status, which happens at the start of a turn
         self.status_duration = status_duration
         # stun has a separate duration from the rest of effects and it disables all moves
         self.stun_duration = stun_duration
         # thorn damage means the damage taken by attacker of the creature under status
         # thorn damage has a range
+        # thorn on negative values allows healing ("leeching" health)
         self.thorn_damage_low = thorn_damage_low
         self.thorn_damage_high = thorn_damage_high
-        # todo: extinguishers functionality
-        self.extinguishers = []
-
-    # types of moves that remove the status effect
-    # separate from weaknesses for more possibilities
-    # status can be removed by either party - oneself or opponent
-    def __addExtinguisher__(self, extinguisher: Type):
-        self.extinguishers.append(extinguisher)
 
 
 # applied status copy and damage_modifier reflecting weakness/resistance/immunity
@@ -115,9 +114,10 @@ class Move:
 # straight-forward
 class Creature:
 
-    def __init__(self, name: str, desc: str, health: int, defense: int,
+    def __init__(self, id: int, name: str, desc: str, health: int, defense: int,
                  move1: Move, move2: Move, move3: Move, move4: Move, move5: Move,
                  types: tuple[Type, ...]):
+        self.id = id
         self.name = name
         self.desc = desc
         self.health = health
@@ -142,6 +142,7 @@ class CreatureOccurrence:
         self.active_statuses = []
         self.isStunned = False
         self.cooldowns = [0, 0, 0, 0, 0]
+        self.total_damage_healed = 0 # for statistics
 
     def __tickCooldowns__(self):
         print(f"Cooldowns of {self.c.name}: ")
@@ -162,13 +163,13 @@ class CreatureOccurrence:
             for w in t.weaknesses:
                 if type == w:
                     modifier = True
-                    damage_modifier = 1.5
+                    damage_modifier = 1.2
                     break
             if modifier: break
             for r in t.resistances:
                 if type == r:
                     modifier = True
-                    damage_modifier = 0.67
+                    damage_modifier = 0.8
                     break
             if modifier: break
             for i in t.immunities:
@@ -177,7 +178,38 @@ class CreatureOccurrence:
                     damage_modifier = 0
                     break
             if modifier: break
-        return damage_modifier
+        if not testing_wout_type:
+            return damage_modifier # normal
+        else:
+            return 1 # testing balance w/out type relationships
+
+    @staticmethod
+    def __checkTypesWeakness__(type1: Type, type2: Type) -> bool:
+        for w in type1.weaknesses:
+            if w == type2:
+                return True
+        return False
+
+    # extinguishes effects
+    def __checkForExtinguishing__(self, type: Type):
+        # extinguishing functionality
+        # for element in list doesn't work here properly
+        # list is dynamically modified when status is expired
+        i = 0
+        if testing_wout_type:
+            num_of_statuses = 0 # testing balance w/out type relationships
+        else:
+            num_of_statuses = len(self.active_statuses)
+        while i < num_of_statuses:
+            so = self.active_statuses[i]
+
+            # check for weakness
+            if self.__checkTypesWeakness__(so.se.type, type):
+                print(f"Status {so.se.name} extinguished for {self.c.name}")
+                self.active_statuses.remove(so)
+                i -= 1
+                num_of_statuses -= 1
+            i += 1
 
     def __takeDamage__(self, damage: int):
 
@@ -186,6 +218,7 @@ class CreatureOccurrence:
         elif damage < 0:
             if self.health > 0:
                 print(f"{self.c.name} regains {-damage} health!")
+                self.total_damage_healed -= damage
 
         # apply damage
         self.health -= damage
@@ -209,7 +242,7 @@ class CreatureOccurrence:
 
     def __checkIfStunned__(self):
         for so in self.active_statuses:
-            if so.stun_d >= 1:
+            if so.stun_d >= 0:
                 self.isStunned = True
                 return
         self.isStunned = False
@@ -237,10 +270,10 @@ class CreatureOccurrence:
                 so.status_d -= 1
 
                 # activate/deactivate stun
-                if so.stun_d >= 1:
+                if so.stun_d >= 0:
                     so.stun_d -= 1
 
-                if so.se.damage_low != so.se.damage_high:
+                if so.se.damage_low < so.se.damage_high:
                     tick_damage = random.randrange(so.se.damage_low, so.se.damage_high+1)
                 else:
                     tick_damage = so.se.damage_high
@@ -257,27 +290,26 @@ class CreatureOccurrence:
             i += 1
 
     def __makeMove__(self, opponent: CreatureOccurrence, move: Move):
-
-        print(f"{self.c.name} uses {move.name}!")
         # creature targets self
         if move.target_self:
             for i in range(0, move.hit_attempts):
-                if move.damage_low != move.damage_high:
+                if move.damage_low < move.damage_high:
                     damage = random.randrange(move.damage_low, move.damage_high+1)
                 else:
                     damage = move.damage_high
                 hit_text = "Move connected!"
-                effectiveness_text = "It's effective!"
                 status_chance = move.status_chance
                 status_roll = random.randrange(0, 100)
 
                 # status proc
                 if status_roll < status_chance:
                     self.__applyStatus__(move.status_effect)
+                    self.__checkForExtinguishing__(move.status_effect.type)
 
                 print(f"{hit_text} ")
 
                 self.__takeDamage__(damage)
+                self.__checkForExtinguishing__(move.type)
 
         # creature targets opponent
         else:
@@ -300,11 +332,11 @@ class CreatureOccurrence:
                 thorn_mod_high += so.se.thorn_damage_high
 
             hit_chance = move.aim + aim_mod - opponent.c.defense - defense_mod
+            damage_multiplier = opponent.__checkTypeRelationship__(move.type)
 
             for i in range(0, move.hit_attempts):
                 hit_roll = random.randrange(0, 100)
 
-                damage_multiplier = opponent.__checkTypeRelationship__(move.type)
                 if damage_multiplier == 0:
                     effectiveness_text = "It had no effect!"
                 elif damage_multiplier < 1:
@@ -316,7 +348,7 @@ class CreatureOccurrence:
 
                 # move connects
                 if hit_roll < hit_chance:
-                    if move.damage_low != move.damage_high:
+                    if move.damage_low < move.damage_high:
                         damage = int((random.randrange(move.damage_low, move.damage_high+1) + damage_mod) * damage_multiplier)
                     else:
                         damage = int((move.damage_high + damage_mod) * damage_multiplier)
@@ -329,23 +361,26 @@ class CreatureOccurrence:
                         if status_roll < status_chance:
                             print(f"Applied status effect {move.status_effect.name} to {opponent.c.name}! ({status_roll}|{status_chance})")
                             opponent.__applyStatus__(move.status_effect)
+                            opponent.__checkForExtinguishing__(move.status_effect.type)
                         else:
                             print(f"Missed status effect {move.status_effect.name}! ({status_roll}|{status_chance})")
 
                 # graze or miss
                 else:
-                    if move.damage_low != move.damage_high:
+                    if move.damage_low < move.damage_high:
                         damage = int((random.randrange(move.damage_low, move.damage_high+1) + damage_mod - move.damage_low) * damage_multiplier)
                     else:
                         damage = 0
                     # teensy extra miss chance
                     damage -= 1
-                    hit_text = "Grazed!"
+                    if damage > 0:
+                        hit_text = "Grazed!"
+                    else:
+                        hit_text = "Missed!"
 
                 # prevent being healed by an enemy when he shoots fire at you (yeah, that happened)
                 if damage < 0:
                     damage = 0
-                    hit_text = "Missed!"
 
                 if hit_text != "Missed!":
                     print(f"{hit_text} ({hit_roll}|{hit_chance})\n{effectiveness_text}")
@@ -353,13 +388,19 @@ class CreatureOccurrence:
                     print(f"{hit_text} ({hit_roll}|{hit_chance})")
 
                 opponent.__takeDamage__(damage)
+                opponent.__checkForExtinguishing__(move.type)
 
-            if thorn_mod_low > 0:
+            # thorn calculations and appliance
+            if thorn_mod_low < thorn_mod_high:
+                thorn_damage = random.randrange(thorn_mod_low, thorn_mod_high + 1)
+            else:
+                thorn_damage = thorn_mod_high
+
+            if thorn_damage > 0: # take damage
                 print(f"{opponent.c.name} retaliates!")
-                if thorn_mod_low != thorn_mod_high:
-                    thorn_damage = random.randrange(thorn_mod_low, thorn_mod_high + 1)
-                else:
-                    thorn_damage = thorn_mod_high
+                self.__takeDamage__(thorn_damage)
+            elif thorn_mod_low < 0: # heal yourself
+                print(f"{self.c.name} leeches health from it's opponent!")
                 self.__takeDamage__(thorn_damage)
 
 
@@ -370,50 +411,156 @@ all_types = {
     "PHYSICAL": Type("PHYSICAL"),
     "FLYING": Type("FLYING"),
     "ELECTRIC": Type("ELECTRIC"),
+    "WATER": Type("WATER"),
+    "PSYCHIC": Type("PSYCHIC"),
+    "GHOST": Type("GHOST"),
+    "WIND": Type("WIND"),
+    "NULLIFY": Type("NULLIFY"),
+    "VAMPIRIC": Type("VAMPIRIC"),
+    "MAGIC": Type("MAGIC"),
+    "GRASS": Type("GRASS")
 }
+
 all_types["FIRE"].__addResistances__(all_types["FIRE"])
+all_types["FIRE"].__addWeakness__(all_types["WATER"])
+all_types["FIRE"].__addResistances__(all_types["GRASS"])
+
 all_types["ELECTRIC"].__addResistances__(all_types["ELECTRIC"])
+all_types["ELECTRIC"].__addResistances__(all_types["WATER"])
+
+all_types["WATER"].__addResistances__(all_types["WATER"])
+all_types["WATER"].__addResistances__(all_types["FIRE"])
+all_types["WATER"].__addWeakness__(all_types["ELECTRIC"])
+all_types["WATER"].__addWeakness__(all_types["GRASS"])
+
+all_types["PSYCHIC"].__addResistances__(all_types["PSYCHIC"])
+
+all_types["GHOST"].__addImmunities__(all_types["PHYSICAL"])
+all_types["GHOST"].__addWeakness__(all_types["PSYCHIC"])
+
+all_types["WIND"].__addResistances__(all_types["WIND"])
+
+all_types["VAMPIRIC"].__addResistances__(all_types["VAMPIRIC"])
+
+all_types["MAGIC"].__addResistances__(all_types["MAGIC"])
+all_types["MAGIC"].__addResistances__(all_types["FIRE"])
+all_types["MAGIC"].__addResistances__(all_types["WATER"])
+all_types["MAGIC"].__addResistances__(all_types["ELECTRIC"])
+all_types["MAGIC"].__addResistances__(all_types["PSYCHIC"])
+all_types["MAGIC"].__addResistances__(all_types["GRASS"])
+all_types["MAGIC"].__addWeakness__(all_types["PHYSICAL"])
+
+all_types["GRASS"].__addResistances__(all_types["GRASS"])
+all_types["GRASS"].__addWeakness__(all_types["FIRE"])
+all_types["GRASS"].__addResistances__(all_types["WATER"])
+
+all_types["FIRE"].__addWeakness__(all_types["NULLIFY"])
+all_types["PHYSICAL"].__addWeakness__(all_types["NULLIFY"])
+all_types["FLYING"].__addWeakness__(all_types["NULLIFY"])
+all_types["ELECTRIC"].__addWeakness__(all_types["NULLIFY"])
+all_types["WATER"].__addWeakness__(all_types["NULLIFY"])
+all_types["PSYCHIC"].__addWeakness__(all_types["NULLIFY"])
+all_types["GHOST"].__addWeakness__(all_types["NULLIFY"])
+all_types["WIND"].__addWeakness__(all_types["NULLIFY"])
+all_types["VAMPIRIC"].__addWeakness__(all_types["NULLIFY"])
+all_types["MAGIC"].__addWeakness__(all_types["NULLIFY"])
+all_types["GRASS"].__addWeakness__(all_types["NULLIFY"])
 
 all_status_effects = {
     # FRAGONITE THE FIRE DRAGON
     "BURNING":
         StatusEffect(name="BURNING", type=all_types["FIRE"], damage_low=2, damage_high=2,
                      aim_mod=-4, defense_mod=0, damage_mod=0, damage_mod_type=None,
-                     status_duration=3, stun_duration=0,
+                     status_duration=3, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0),
     "WARMING":
         StatusEffect(name="WARMING", type=all_types["FIRE"], damage_low=-4, damage_high=-3,
                      aim_mod=0, defense_mod=0, damage_mod=0, damage_mod_type=None,
-                     status_duration=4, stun_duration=0,
+                     status_duration=4, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0),
     "AIRBORNE":
         StatusEffect(name="AIRBORNE", type=all_types["FLYING"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=50, damage_mod=0, damage_mod_type=None,
-                     status_duration=1, stun_duration=0,
+                     status_duration=1, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0),
     "BITING FLAMES":
         StatusEffect(name="FIREWALL", type=all_types["FIRE"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=0, damage_mod=0, damage_mod_type=None,
-                     status_duration=0, stun_duration=0,
+                     status_duration=0, stun_duration=-1,
                      thorn_damage_low=16, thorn_damage_high=24),
 
     # SCHONIPS THE SHOCK SNAKE
     "ELECTRIC FORTIFICATION":
         StatusEffect(name="ELECTRIC FORTIFICATION", type=all_types["ELECTRIC"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=0, damage_mod=2, damage_mod_type=all_types["ELECTRIC"],
-                     status_duration=3, stun_duration=0,
+                     status_duration=3, stun_duration=-1,
                      thorn_damage_low=2, thorn_damage_high=6),
     "SHOCKED":
         StatusEffect(name="SHOCKED", type=all_types["ELECTRIC"], damage_low=0, damage_high=0,
-                     aim_mod=0, defense_mod=-10, damage_mod=-2, damage_mod_type=None,
+                     aim_mod=0, defense_mod=-5, damage_mod=-1, damage_mod_type=None,
                      status_duration=3, stun_duration=1,
                      thorn_damage_low=0, thorn_damage_high=0),
     "SNAKE REGENERATION":
-        StatusEffect(name="SNAKE REGENERATION", type=all_types["PHYSICAL"], damage_low=-4, damage_high=-4,
-                     aim_mod=0, defense_mod=10, damage_mod=0, damage_mod_type=None,
-                     status_duration=6, stun_duration=0,
-                     thorn_damage_low=0, thorn_damage_high=0)
+        StatusEffect(name="SNAKE REGENERATION", type=all_types["PHYSICAL"], damage_low=-4, damage_high=-2,
+                     aim_mod=0, defense_mod=5, damage_mod=0, damage_mod_type=None,
+                     status_duration=6, stun_duration=-1,
+                     thorn_damage_low=0, thorn_damage_high=0),
 
+    # PSAWARCA THE PSYCHIC WATER ORCA
+    "MENTAL IMPAIRMENT":
+        StatusEffect(name="MENTAL IMPAIRMENT", type=all_types["PSYCHIC"], damage_low=0, damage_high=0,
+                     aim_mod=-10, defense_mod=-5, damage_mod=-1, damage_mod_type=None,
+                     status_duration=1, stun_duration=-1,
+                     thorn_damage_low=0, thorn_damage_high=0),
+    "WET":
+        StatusEffect(name="WET", type=all_types["WATER"], damage_low=0, damage_high=0,
+                     aim_mod=0, defense_mod=-5, damage_mod=-3, damage_mod_type=all_types["FIRE"],
+                     status_duration=2, stun_duration=-1,
+                     thorn_damage_low=0, thorn_damage_high=0),
+    "PSYCHIC SHIELD":
+        StatusEffect(name="PSYCHIC SHIELD", type=all_types["PSYCHIC"], damage_low=0, damage_high=0,
+                     aim_mod=0, defense_mod=25, damage_mod=0, damage_mod_type=None,
+                     status_duration=3, stun_duration=-1,
+                     thorn_damage_low=2, thorn_damage_high=4),
+
+    # SHIGOWI THE WIND SHAPESHIFTER
+    "HIDDEN BY VOID":
+        StatusEffect(name="HIDDEN BY VOID", type=all_types["GHOST"], damage_low=0, damage_high=0,
+                     aim_mod=0, defense_mod=200, damage_mod=0, damage_mod_type=None,
+                     status_duration=0, stun_duration=-1,
+                     thorn_damage_low=4, thorn_damage_high=8),
+    "TRIPPED":
+        StatusEffect(name="TRIPPED", type=all_types["PHYSICAL"], damage_low=0, damage_high=4,
+                     aim_mod=0, defense_mod=0, damage_mod=0, damage_mod_type=None,
+                     status_duration=0, stun_duration=0,
+                     thorn_damage_low=0, thorn_damage_high=0),
+    "NULLIFICATION":
+        StatusEffect(name="NULLIFICATION", type=all_types["NULLIFY"], damage_low=0, damage_high=0,
+                     aim_mod=0, defense_mod=10, damage_mod=0, damage_mod_type=None,
+                     status_duration=1, stun_duration=1,
+                     thorn_damage_low=20, thorn_damage_high=30),
+
+    # BAMAT THE LARGE MAGICAL BAT
+    "VAMPIRIC PHEROMONES":
+        StatusEffect(name="VAMPIRIC PHEROMONES", type=all_types["VAMPIRIC"], damage_low=0, damage_high=0,
+                     aim_mod=0, defense_mod=-10, damage_mod=0, damage_mod_type=None,
+                     status_duration=3, stun_duration=0,
+                     thorn_damage_low=-6, thorn_damage_high=-4),
+    "HUNGER":
+        StatusEffect(name="HUNGER", type=all_types["VAMPIRIC"], damage_low=1, damage_high=2,
+                     aim_mod=-2, defense_mod=-2, damage_mod=0, damage_mod_type=None,
+                     status_duration=9, stun_duration=0,
+                     thorn_damage_low=0, thorn_damage_high=0),
+    "BLIND":
+        StatusEffect(name="BLIND", type=all_types["MAGIC"], damage_low=0, damage_high=0,
+                     aim_mod=-30, defense_mod=-10, damage_mod=-2, damage_mod_type=None,
+                     status_duration=2, stun_duration=1,
+                     thorn_damage_low=0, thorn_damage_high=0),
+    "MAGIC SHIELD":
+        StatusEffect(name="MAGIC SHIELD", type=all_types["MAGIC"], damage_low=-2, damage_high=0,
+                     aim_mod=0, defense_mod=5, damage_mod=0, damage_mod_type=None,
+                     status_duration=4, stun_duration=-1,
+                     thorn_damage_low=0, thorn_damage_high=4),
 }
 
 all_moves = {
@@ -457,9 +604,9 @@ all_moves = {
              status_effect=all_status_effects["ELECTRIC FORTIFICATION"], status_chance=100, cooldown=2),
     "ELECTRIC DISCHARGE":
         Move(name="ELECTRIC DISCHARGE",
-             type=all_types["ELECTRIC"], speed=3, target_self=False,
-             damage_low=8, damage_high=12, aim=75, hit_attempts=1,
-             status_effect=all_status_effects["SHOCKED"], status_chance=100, cooldown=5),
+             type=all_types["ELECTRIC"], speed=4, target_self=False,
+             damage_low=4, damage_high=8, aim=80, hit_attempts=1,
+             status_effect=all_status_effects["SHOCKED"], status_chance=100, cooldown=6),
     "SHED SKIN":
         Move(name="SHED SKIN",
              type=all_types["PHYSICAL"], speed=2, target_self=True,
@@ -468,20 +615,109 @@ all_moves = {
     "SHOCK SCREAM":
         Move(name="SHOCK SCREAM",
              type=all_types["ELECTRIC"], speed=3, target_self=False,
-             damage_low=4, damage_high=6, aim=80, hit_attempts=3,
+             damage_low=4, damage_high=6, aim=90, hit_attempts=3,
              status_effect=None, status_chance=0, cooldown=2),
+
+    # PSAWARCA THE PSYCHIC WATER ORCA
+    "PSYCHIC CHALLENGE":
+        Move(name="PSYCHIC CHALLENGE",
+             type=all_types["PSYCHIC"], speed=3, target_self=False,
+             damage_low=2, damage_high=6, aim=80, hit_attempts=3,
+             status_effect=all_status_effects["MENTAL IMPAIRMENT"], status_chance=100, cooldown=2),
+    "WATER CANNON":
+        Move(name="WATER CANNON",
+             type=all_types["WATER"], speed=3, target_self=False,
+             damage_low=8, damage_high=16, aim=90, hit_attempts=1,
+             status_effect=all_status_effects["WET"], status_chance=100, cooldown=2),
+    "ILLUSORY SHIELDING":
+        Move(name="ILLUSORY SHIELDING",
+             type=all_types["PSYCHIC"], speed=4, target_self=True,
+             damage_low=0, damage_high=0, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["PSYCHIC SHIELD"], status_chance=100, cooldown=5),
+    "MIRACLE REGENERATION":
+        Move(name="MIRACLE REGENERATION",
+             type=all_types["PSYCHIC"], speed=2, target_self=True,
+             damage_low=-5, damage_high=0, aim=200, hit_attempts=5,
+             status_effect=None, status_chance=0, cooldown=5),
+    "WATER WAVE":
+        Move(name="WATER WAVE",
+             type=all_types["WATER"], speed=4, target_self=False,
+             damage_low=12, damage_high=14, aim=80, hit_attempts=1,
+             status_effect=all_status_effects["WET"], status_chance=100, cooldown=2),
+
+    # SHIGOWI THE WIND GHOST SHAPESHIFTER
+    "PHANTOM BLADES":
+        Move(name="PHANTOM BLADES", type=all_types["GHOST"], speed=3, target_self=False,
+             damage_low=4, damage_high=8, aim=75, hit_attempts=3,
+             status_effect=None, status_chance=0, cooldown=1),
+    "ESCAPE TO VOID":
+        Move(name="ESCAPE TO VOID", type=all_types["GHOST"], speed=5, target_self=True,
+             damage_low=-8, damage_high=-4, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["HIDDEN BY VOID"], status_chance=100, cooldown=3),
+    "TRIP OVER":
+        Move(name="TRIP OVER", type=all_types["WIND"], speed=4, target_self=False,
+             damage_low=2, damage_high=6, aim=100, hit_attempts=1,
+             status_effect=all_status_effects["TRIPPED"], status_chance=90, cooldown=3),
+    "HURRICANE":
+        Move(name="HURRICANE", type=all_types["WIND"], speed=1, target_self=False,
+             damage_low=12, damage_high=24, aim=85, hit_attempts=1,
+             status_effect=all_status_effects["TRIPPED"], status_chance=100, cooldown=3),
+    "RESET VOID":
+        Move(name="RESET VOID", type=all_types["NULLIFY"], speed=5, target_self=True,
+             damage_low=4, damage_high=4, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["NULLIFICATION"], status_chance=100, cooldown=6),
+
+    # BAMAT THE LARGE MAGICAL BAT
+    "BAT BITE":
+        Move(name="BAT BITE", type=all_types["PHYSICAL"], speed=4, target_self=False,
+             damage_low=8, damage_high=14, aim=85, hit_attempts=1,
+             status_effect=None, status_chance=0, cooldown=0),
+    "DROP OF BLOOD":
+        Move(name="DROP OF BLOOD", type=all_types["VAMPIRIC"], speed=5, target_self=False,
+             damage_low=1, damage_high=1, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["VAMPIRIC PHEROMONES"], status_chance=100, cooldown=5),
+    "STARVE OPPONENT":
+        Move(name="STARVE OPPONENT", type=all_types["VAMPIRIC"], speed=3, target_self=False,
+             damage_low=0, damage_high=0, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["HUNGER"], status_chance=80, cooldown=3),
+    "BLINDING LIGHT":
+        Move(name="BLINDING LIGHT", type=all_types["MAGIC"], speed=2, target_self=False,
+             damage_low=4, damage_high=8, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["BLIND"], status_chance=80, cooldown=6),
+    "MAGICAL REINFORCEMENT":
+        Move(name="MAGICAL REINFORCEMENT", type=all_types["MAGIC"], speed=2, target_self=True,
+             damage_low=0, damage_high=0, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["MAGIC SHIELD"], status_chance=100, cooldown=0),
 
 }
 
 all_creatures = {
     "FRAGONIRE":
-        Creature(name="FRAGONIRE", desc="The Fire Dragon Fragonire",
+        Creature(id=0, name="FRAGONIRE", desc="The Fire Dragon Fragonire",
                  health=80, defense=0, move1=all_moves["FIRE BREATH"], move2=all_moves["DRAGON CLAW"],
                  move3=all_moves["WARMTH"], move4=all_moves["FLIGHT"], move5=all_moves["FIREWALL"],
                  types=(all_types["FIRE"], all_types["PHYSICAL"])),
     "SCHONIPS":
-        Creature(name="SCHONIPS", desc="The Shock Snake Schonips",
+        Creature(id=1, name="SCHONIPS", desc="The Shock Snake Schonips",
                  health=65, defense=20, move1=all_moves["SNAKE BITE"], move2=all_moves["ELECTRIFICATION"],
                  move3=all_moves["ELECTRIC DISCHARGE"], move4=all_moves["SHED SKIN"], move5=all_moves["SHOCK SCREAM"],
-                 types=(all_types["ELECTRIC"], all_types["PHYSICAL"]))
+                 types=(all_types["ELECTRIC"], all_types["PHYSICAL"])),
+    "PSAWARCA":
+        Creature(id=2, name="PSAWARCA", desc="The Psychic Water Orca Psawarca",
+                 health=85, defense=0, move1=all_moves["PSYCHIC CHALLENGE"], move2=all_moves["WATER CANNON"],
+                 move3=all_moves["ILLUSORY SHIELDING"], move4=all_moves["MIRACLE REGENERATION"], move5=all_moves["WATER WAVE"],
+                 types=(all_types["PSYCHIC"], all_types["WATER"], all_types["PHYSICAL"])),
+
+    "SHIGOWI":
+        Creature(id=3, name="SHIGOWI", desc="The Wind Shapeshifter Shigowi",
+                 health=60, defense=25, move1=all_moves["PHANTOM BLADES"], move2=all_moves["ESCAPE TO VOID"],
+                 move3=all_moves["TRIP OVER"], move4=all_moves["HURRICANE"], move5=all_moves["RESET VOID"],
+                 types=(all_types["GHOST"], all_types["WIND"])),
+
+    "BAMAT":
+        Creature(id=4, name="BAMAT", desc="The Large Magical Bat Bamat",
+                 health=95, defense=-10, move1=all_moves["BAT BITE"], move2=all_moves["DROP OF BLOOD"],
+                 move3=all_moves["STARVE OPPONENT"], move4=all_moves["BLINDING LIGHT"], move5=all_moves["MAGICAL REINFORCEMENT"],
+                 types=(all_types["VAMPIRIC"], all_types["MAGIC"], all_types["PHYSICAL"]))
 }
+
