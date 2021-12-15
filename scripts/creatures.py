@@ -192,24 +192,25 @@ class CreatureOccurrence:
 
     # extinguishes effects
     def __checkForExtinguishing__(self, type: Type):
-        # extinguishing functionality
-        # for element in list doesn't work here properly
-        # list is dynamically modified when status is expired
-        i = 0
-        if testing_wout_type:
-            num_of_statuses = 0 # testing balance w/out type relationships
-        else:
-            num_of_statuses = len(self.active_statuses)
-        while i < num_of_statuses:
-            so = self.active_statuses[i]
+        if type is not all_types["PHYSICAL"]: # physical type does not extinguish
+            # extinguishing functionality
+            # for element in list doesn't work here properly
+            # list is dynamically modified when status is expired
+            i = 0
+            if testing_wout_type:
+                num_of_statuses = 0 # testing balance w/out type relationships
+            else:
+                num_of_statuses = len(self.active_statuses)
+            while i < num_of_statuses:
+                so = self.active_statuses[i]
 
-            # check for weakness
-            if self.__checkTypesWeakness__(so.se.type, type):
-                print(f"Status {so.se.name} extinguished for {self.c.name}")
-                self.active_statuses.remove(so)
-                i -= 1
-                num_of_statuses -= 1
-            i += 1
+                # check for weakness
+                if self.__checkTypesWeakness__(so.se.type, type):
+                    print(f"Status {so.se.name} extinguished for {self.c.name}")
+                    self.active_statuses.remove(so)
+                    i -= 1
+                    num_of_statuses -= 1
+                i += 1
 
     def __takeDamage__(self, damage: int):
 
@@ -480,14 +481,14 @@ all_status_effects = {
                      thorn_damage_low=0, thorn_damage_high=0),
     "AIRBORNE":
         StatusEffect(name="AIRBORNE", type=all_types["FLYING"], damage_low=0, damage_high=0,
-                     aim_mod=0, defense_mod=50, damage_mod=0, damage_mod_type=None,
+                     aim_mod=20, defense_mod=50, damage_mod=1, damage_mod_type=all_types["FIRE"],
                      status_duration=1, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0),
     "BITING FLAMES":
         StatusEffect(name="FIREWALL", type=all_types["FIRE"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=0, damage_mod=0, damage_mod_type=None,
                      status_duration=0, stun_duration=-1,
-                     thorn_damage_low=16, thorn_damage_high=24),
+                     thorn_damage_low=20, thorn_damage_high=24),
 
     # SCHONIPS THE SHOCK SNAKE
     "ELECTRIC FORTIFICATION":
@@ -544,23 +545,23 @@ all_status_effects = {
     "VAMPIRIC PHEROMONES":
         StatusEffect(name="VAMPIRIC PHEROMONES", type=all_types["VAMPIRIC"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=-10, damage_mod=0, damage_mod_type=None,
-                     status_duration=3, stun_duration=0,
+                     status_duration=3, stun_duration=-1,
                      thorn_damage_low=-6, thorn_damage_high=-4),
     "HUNGER":
         StatusEffect(name="HUNGER", type=all_types["VAMPIRIC"], damage_low=1, damage_high=2,
                      aim_mod=-2, defense_mod=-2, damage_mod=0, damage_mod_type=None,
-                     status_duration=9, stun_duration=0,
+                     status_duration=9, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0),
     "BLIND":
         StatusEffect(name="BLIND", type=all_types["MAGIC"], damage_low=0, damage_high=0,
-                     aim_mod=-30, defense_mod=-10, damage_mod=-2, damage_mod_type=None,
+                     aim_mod=-20, defense_mod=-10, damage_mod=-1, damage_mod_type=None,
                      status_duration=2, stun_duration=1,
                      thorn_damage_low=0, thorn_damage_high=0),
     "MAGIC SHIELD":
         StatusEffect(name="MAGIC SHIELD", type=all_types["MAGIC"], damage_low=-2, damage_high=0,
                      aim_mod=0, defense_mod=5, damage_mod=0, damage_mod_type=None,
                      status_duration=4, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=4),
+                     thorn_damage_low=0, thorn_damage_high=3),
 }
 
 all_moves = {
@@ -568,7 +569,7 @@ all_moves = {
     "FIRE BREATH":
         Move(name="FIRE BREATH",
              type=all_types["FIRE"], speed=3, target_self=False,
-             damage_low=3, damage_high=6, aim=80, hit_attempts=3,
+             damage_low=3, damage_high=5, aim=80, hit_attempts=3,
              status_effect=all_status_effects["BURNING"], status_chance=70, cooldown=2),
     "DRAGON CLAW":
         Move(name="DRAGON CLAW",
@@ -670,7 +671,7 @@ all_moves = {
     # BAMAT THE LARGE MAGICAL BAT
     "BAT BITE":
         Move(name="BAT BITE", type=all_types["PHYSICAL"], speed=4, target_self=False,
-             damage_low=8, damage_high=14, aim=85, hit_attempts=1,
+             damage_low=8, damage_high=16, aim=85, hit_attempts=1,
              status_effect=None, status_chance=0, cooldown=0),
     "DROP OF BLOOD":
         Move(name="DROP OF BLOOD", type=all_types["VAMPIRIC"], speed=5, target_self=False,
@@ -682,8 +683,8 @@ all_moves = {
              status_effect=all_status_effects["HUNGER"], status_chance=80, cooldown=3),
     "BLINDING LIGHT":
         Move(name="BLINDING LIGHT", type=all_types["MAGIC"], speed=2, target_self=False,
-             damage_low=4, damage_high=8, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["BLIND"], status_chance=80, cooldown=6),
+             damage_low=4, damage_high=8, aim=100, hit_attempts=1,
+             status_effect=all_status_effects["BLIND"], status_chance=80, cooldown=7),
     "MAGICAL REINFORCEMENT":
         Move(name="MAGICAL REINFORCEMENT", type=all_types["MAGIC"], speed=2, target_self=True,
              damage_low=0, damage_high=0, aim=200, hit_attempts=1,
