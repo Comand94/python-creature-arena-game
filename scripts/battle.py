@@ -42,23 +42,12 @@ class Battle:
             # time.sleep(1)
 
             # roll the moves for testing
-            p1_move_roll = random.randrange(0, 5)
-            p2_move_roll = random.randrange(0, 5)
+            if not p1.ac.isStunned:
+                p1_move_roll, p2_assumed = p1.__calculateMove__(p2.ac)
+            if not p2.ac.isStunned:
+                p2_move_roll, p1_assumed = p2.__calculateMove__(p1.ac)
             print(f"{p1.ac.c.name} rolled {p1_move_roll}, cooldown: {p1.ac.cooldowns[p1_move_roll]}")
             print(f"{p2.ac.c.name} rolled {p2_move_roll}, cooldown: {p2.ac.cooldowns[p2_move_roll]}")
-
-            # re-roll if necessary
-            while p1.ac.cooldowns[p1_move_roll] >= 1:
-                p1_move_roll = random.randrange(0, 5)
-                print(f"{p1.ac.c.name} rolled {p1_move_roll}, cooldown: {p1.ac.cooldowns[p1_move_roll]}")
-                # time.sleep(0.2)
-            while p2.ac.cooldowns[p2_move_roll] >= 1:
-                p2_move_roll = random.randrange(0, 5)
-                print(f"{p2.ac.c.name} rolled {p2_move_roll}, cooldown: {p2.ac.cooldowns[p2_move_roll]}")
-                # time.sleep(0.2)
-
-            move_score = pl.score_move([p1.ac, p2.ac], [p1_move_roll, p2_move_roll])
-            print(f"move_score p1, p2: {move_score}")
 
             print(f"\n(SOT) Player 1 health: {p1.ac.health}\n      Player 2 health: {p2.ac.health}")
 
@@ -99,6 +88,7 @@ class Battle:
                 p2.ac.__makeMove__(p1.ac, p2.ac.c.moves[p2_move_roll])
                 p2.ac.cooldowns[p2_move_roll] = p2.ac.c.moves[p2_move_roll].cooldown + 1
                 p2_move_count[p2_move_roll] += 1
+                p1.risk_evaluation(p2_assumed, p2_move_roll)
 
             if moves_first == 1 or moves_second == 1:
                 # time.sleep(1)
@@ -110,6 +100,8 @@ class Battle:
                     p1.ac.__makeMove__(p2.ac, p1.ac.c.moves[p1_move_roll])
                     p1.ac.cooldowns[p1_move_roll] = p1.ac.c.moves[p1_move_roll].cooldown + 1
                     p1_move_count[p1_move_roll] += 1
+                    p2.risk_evaluation(p1_assumed, p1_move_roll)
+
 
             if moves_second == 2:
                 # time.sleep(1)
@@ -121,6 +113,8 @@ class Battle:
                     p2.ac.__makeMove__(p1.ac, p2.ac.c.moves[p2_move_roll])
                     p2.ac.cooldowns[p2_move_roll] = p2.ac.c.moves[p2_move_roll].cooldown + 1
                     p2_move_count[p2_move_roll] += 1
+                    p1.risk_evaluation(p2_assumed, p2_move_roll)
+
 
             #time.sleep(1)
             print(f"(EOT) Player 1 health: {p1.ac.health}\n      Player 2 health: {p2.ac.health}")
