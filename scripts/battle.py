@@ -43,9 +43,9 @@ class Battle:
 
             # roll the moves for testing
             if not p1.ac.isStunned:
-                p1_move_roll, p2_assumed = p1.__calculateMove__(p2.ac)
+                p1_move_roll, p2_assumed, p2_assumed_mode = p1.__calculateMove__(p2.ac)
             if not p2.ac.isStunned:
-                p2_move_roll, p1_assumed = p2.__calculateMove__(p1.ac)
+                p2_move_roll, p1_assumed, p1_assumed_mode = p2.__calculateMove__(p1.ac)
             print(f"{p1.ac.c.name} rolled {p1_move_roll}, cooldown: {p1.ac.cooldowns[p1_move_roll]}")
             print(f"{p2.ac.c.name} rolled {p2_move_roll}, cooldown: {p2.ac.cooldowns[p2_move_roll]}")
 
@@ -88,7 +88,7 @@ class Battle:
                 p2.ac.__makeMove__(p1.ac, p2.ac.c.moves[p2_move_roll])
                 p2.ac.cooldowns[p2_move_roll] = p2.ac.c.moves[p2_move_roll].cooldown + 1
                 p2_move_count[p2_move_roll] += 1
-                p1.risk_evaluation(p2_assumed, p2_move_roll)
+                p1.risk_evaluation(p2_assumed, p2_move_roll, p2_assumed_mode)
 
             if moves_first == 1 or moves_second == 1:
                 # time.sleep(1)
@@ -100,7 +100,7 @@ class Battle:
                     p1.ac.__makeMove__(p2.ac, p1.ac.c.moves[p1_move_roll])
                     p1.ac.cooldowns[p1_move_roll] = p1.ac.c.moves[p1_move_roll].cooldown + 1
                     p1_move_count[p1_move_roll] += 1
-                    p2.risk_evaluation(p1_assumed, p1_move_roll)
+                    p2.risk_evaluation(p1_assumed, p1_move_roll, p1_assumed_mode)
 
 
             if moves_second == 2:
@@ -113,7 +113,7 @@ class Battle:
                     p2.ac.__makeMove__(p1.ac, p2.ac.c.moves[p2_move_roll])
                     p2.ac.cooldowns[p2_move_roll] = p2.ac.c.moves[p2_move_roll].cooldown + 1
                     p2_move_count[p2_move_roll] += 1
-                    p1.risk_evaluation(p2_assumed, p2_move_roll)
+                    p1.risk_evaluation(p2_assumed, p2_move_roll, p2_assumed_mode)
 
 
             #time.sleep(1)
