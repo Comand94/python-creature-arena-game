@@ -502,7 +502,7 @@ all_status_effects = {
                      status_duration=3, stun_duration=1,
                      thorn_damage_low=0, thorn_damage_high=0),
     "SNAKE REGENERATION":
-        StatusEffect(name="SNAKE REGENERATION", type=all_types["PHYSICAL"], damage_low=-4, damage_high=-2,
+        StatusEffect(name="SNAKE REGENERATION", type=all_types["PHYSICAL"], damage_low=-3, damage_high=-2,
                      aim_mod=0, defense_mod=5, damage_mod=0, damage_mod_type=None,
                      status_duration=6, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0),
@@ -522,12 +522,12 @@ all_status_effects = {
         StatusEffect(name="PSYCHIC SHIELD", type=all_types["PSYCHIC"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=25, damage_mod=0, damage_mod_type=None,
                      status_duration=3, stun_duration=-1,
-                     thorn_damage_low=2, thorn_damage_high=4),
+                     thorn_damage_low=2, thorn_damage_high=3),
 
     # SHIGOWI THE WIND SHAPESHIFTER
     "HIDDEN BY VOID":
         StatusEffect(name="HIDDEN BY VOID", type=all_types["GHOST"], damage_low=0, damage_high=0,
-                     aim_mod=0, defense_mod=200, damage_mod=0, damage_mod_type=None,
+                     aim_mod=0, defense_mod=400, damage_mod=0, damage_mod_type=None,
                      status_duration=0, stun_duration=-1,
                      thorn_damage_low=4, thorn_damage_high=8),
     "TRIPPED":
@@ -579,7 +579,7 @@ all_moves = {
     "WARMTH":
         Move(name="WARMTH",
              type=all_types["FIRE"], speed=2, target_self=True,
-             damage_low=0, damage_high=0, aim=200, hit_attempts=1,
+             damage_low=-4, damage_high=-3, aim=200, hit_attempts=1,
              status_effect=all_status_effects["WARMING"], status_chance=100, cooldown=5),
     "FLIGHT":
         Move(name="FLIGHT",
@@ -612,12 +612,12 @@ all_moves = {
         Move(name="SHED SKIN",
              type=all_types["PHYSICAL"], speed=2, target_self=True,
              damage_low=1, damage_high=1, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["SNAKE REGENERATION"], status_chance=100, cooldown=8),
+             status_effect=all_status_effects["SNAKE REGENERATION"], status_chance=100, cooldown=7),
     "SHOCK SCREAM":
         Move(name="SHOCK SCREAM",
              type=all_types["ELECTRIC"], speed=3, target_self=False,
              damage_low=4, damage_high=6, aim=90, hit_attempts=3,
-             status_effect=None, status_chance=0, cooldown=2),
+             status_effect=None, status_chance=0, cooldown=1),
 
     # PSAWARCA THE PSYCHIC WATER ORCA
     "PSYCHIC CHALLENGE":
@@ -670,20 +670,20 @@ all_moves = {
 
     # BAMAT THE LARGE MAGICAL BAT
     "BAT BITE":
-        Move(name="BAT BITE", type=all_types["PHYSICAL"], speed=4, target_self=False,
+        Move(name="BAT BITE", type=all_types["PHYSICAL"], speed=3, target_self=False,
              damage_low=8, damage_high=16, aim=85, hit_attempts=1,
              status_effect=None, status_chance=0, cooldown=0),
     "DROP OF BLOOD":
         Move(name="DROP OF BLOOD", type=all_types["VAMPIRIC"], speed=5, target_self=False,
              damage_low=1, damage_high=1, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["VAMPIRIC PHEROMONES"], status_chance=100, cooldown=5),
+             status_effect=all_status_effects["VAMPIRIC PHEROMONES"], status_chance=100, cooldown=6),
     "STARVE OPPONENT":
         Move(name="STARVE OPPONENT", type=all_types["VAMPIRIC"], speed=3, target_self=False,
-             damage_low=0, damage_high=0, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["HUNGER"], status_chance=80, cooldown=3),
+             damage_low=0, damage_high=0, aim=110, hit_attempts=1,
+             status_effect=all_status_effects["HUNGER"], status_chance=100, cooldown=3),
     "BLINDING LIGHT":
         Move(name="BLINDING LIGHT", type=all_types["MAGIC"], speed=2, target_self=False,
-             damage_low=4, damage_high=8, aim=100, hit_attempts=1,
+             damage_low=4, damage_high=8, aim=110, hit_attempts=1,
              status_effect=all_status_effects["BLIND"], status_chance=80, cooldown=7),
     "MAGICAL REINFORCEMENT":
         Move(name="MAGICAL REINFORCEMENT", type=all_types["MAGIC"], speed=2, target_self=True,
