@@ -1,5 +1,4 @@
 import random
-
 import scripts.creatures as cr
 
 # creature move opponent multiplier
@@ -12,8 +11,8 @@ import scripts.creatures as cr
 #       first I will fill the list with multiplier 1 for each move, then I will change it individually
 #       for moves that require different scoring
 
-n_o_c = cr.all_creatures.__len__()
-cr_mo_op_multiplier = [[[1.0 for x in range(n_o_c)] for y in range(5)] for z in range(n_o_c)]
+num_of_creatures = cr.all_creatures.__len__()
+cr_mo_op_multiplier = [[[1.0 for x in range(num_of_creatures)] for y in range(5)] for z in range(num_of_creatures)]
 
 # now for individual touch...
 
@@ -30,11 +29,11 @@ cr_mo_op_multiplier[0][2][2] = 0.5
 #   it is a worthwhile move only when timed right before an attack, we can assume that will not
 #   happen very often
 #   for now I will settle with a multiplier of 0.4
-for i in range(0, n_o_c):
+for i in range(0, num_of_creatures):
     cr_mo_op_multiplier[3][4][i] = 0.4
 
 # same for escape to void, but way more extreme (defense_mod of 200 makes it very appealing to AI)
-for i in range(0, n_o_c):
+for i in range(0, num_of_creatures):
     cr_mo_op_multiplier[3][1][i] = 0.2
 
 
@@ -265,58 +264,9 @@ def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
     return scores[0], scores[1]
 
 
-# random polish names for the AI
-# not sure that I'll want to use AI names in the GUI yet, but it might come in handy
-def random_name() -> str:
-    sex = random.randrange(0, 2)
-    name_index = random.randrange(0, 30)
-    surname_index = random.randrange(0, 48)
-
-    if sex == 0:
-        male_names = ("Dawid", "Łukasz", "Adam", "Janusz", "Mariusz", "Mateusz",
-                      "Jakub", "Ksawery", "Adrian", "Lech", "Patryk", "Piotr",
-                      "Krystian", "Kamil", "Artur", "Jarosław", "Krzysztof", "Michał",
-                      "Dariusz", "Edward", "Ignacy", "Józef", "Maciej", "Radosław",
-                      "Kacper", "Szymon", "Filip", "Aleksander", "Oskar", "Fabian")
-
-        male_surnames = ("Leszczyński", "Kowalski", "Abramczyk", "Chlebowski", "Cichowski", "Bachleda",
-                         "Białecki", "Błaszczykowski", "Lewandowski", "Borys", "Dziuba", "Dąbrowski",
-                         "Dobrzyński", "Frankowski", "Gąsowski", "Górski", "Grabowski", "Gutowski",
-                         "Halicki", "Iwanicki", "Jabłczynski", "Mickiewicz", "Zielonka", "Matejko",
-                         "Siembieda", "Bonda", "Gombrowicz", "Hejmo", "Kołodziejski", "Łakomy",
-                         "Duda", "Kukiz", "Kaczyński", "Łagowski", "Kraszewski", "Łazarczyk",
-                         "Jankowski", "Klimek", "Kiszka", "Leniart", "Milski", "Mazurkiewicz",
-                         "Karpiński", "Kołodziej", "Kwiatkowski", "Lasocki", "Napiórkowski", "Nowicki")
-
-        name: str = male_names[name_index] + " " + male_surnames[surname_index]
-
-    else:
-        female_names = ("Natalia", "Beata", "Anna", "Wioleta", "Maria", "Monika",
-                        "Milena", "Wiktoria", "Roksana", "Katarzyna", "Aleksandra", "Marta",
-                        "Agnieszka", "Julia", "Zuzanna", "Alicja", "Zofia", "Elżbieta",
-                        "Aldona", "Angelika", "Emma", "Oliwia", "Sandra", "Gabriela",
-                        "Iga", "Kinga", "Paulina", "Patrycja", "Maja", "Lena")
-
-        female_surnames = ("Leszczyńska", "Kowalska", "Abramczyk", "Chlebowska", "Cichowska", "Bachleda",
-                           "Białecka", "Błaszczykowska", "Lewandowska", "Borys", "Dziuba", "Dąbrowska",
-                           "Dobrzyńska", "Frankowska", "Gąsowska", "Górska", "Grabowska", "Gutowska",
-                           "Halicka", "Iwanicka", "Jabłczynska", "Mickiewicz", "Zielonka", "Matejko",
-                           "Siembieda", "Bonda", "Gombrowicz", "Hejmo", "Kołodziejska", "Łakoma",
-                           "Duda", "Kukiz", "Kaczyńska", "Łagowska", "Kraszewska", "Łazarczyk",
-                           "Jankowska", "Klimek", "Kiszka", "Leniart", "Milska", "Mazurkiewicz",
-                           "Karpińska", "Kołodziej", "Kwiatkowska", "Lasocka", "Napiórkowska", "Nowicka")
-
-        name: str = female_names[name_index] + " " + female_surnames[surname_index]
-
-    return name
-
-
 class Player:
-    def __init__(self, name, creatures: tuple[cr.CreatureOccurrence, ...], ai: int = -1):
-        if name is None:
-            self.name = random_name()
-        else:
-            self.name = name
+    def __init__(self, id: int, creatures: tuple[cr.CreatureOccurrence, ...], ai: int = -1):
+        self.id = id
         self.creatures = creatures  # player's creatures
         self.ac = creatures[0]  # active creature
         self.ai = ai  # ai difficulty (-1 means Player is controlled by a human)
