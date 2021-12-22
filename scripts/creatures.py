@@ -143,7 +143,7 @@ class CreatureOccurrence:
         self.active_statuses: list[StatusOccurrence, ...]
         self.active_statuses = []
         self.isStunned = False
-        self.cooldowns = [0, 0, 0, 0, 0]
+        self.cooldowns = [0, 0, 0, 0, 0, 0]
         self.total_damage_healed = 0 # for statistics
 
 
@@ -281,7 +281,9 @@ class CreatureOccurrence:
 
         print(f"tickStatus for {self.c.name}:")
         num_of_statuses = len(self.active_statuses)
+        n = num_of_statuses # for blit
         i = 0
+        j = i + 1 # for blit
 
         # for element in list doesn't work here properly
         # list is dynamically modified when status is expired
@@ -293,13 +295,13 @@ class CreatureOccurrence:
             # check for end of status
             if so.status_d <= 0:
                 print(f"Status {so.se.name} expired for {self.c.name}")
-                self.bs.__blitBattleText__(f'STATUS "{so.se.name}" ', f"EXPIRED FOR {self.c.name}")
+                self.bs.__blitBattleText__(f'STATUS "{so.se.name}" ', f"EXPIRED FOR {self.c.name} ({j}/{n})")
                 self.active_statuses.remove(so)
                 i -= 1
                 num_of_statuses -= 1
             else:
                 print(f"Ticking status {so.se.name} (turns before expired: {so.status_d}|{so.stun_d}) for {self.c.name}...")
-                self.bs.__blitBattleText__(f'"{so.se.name}" IS STILL ', f"APPLIED TO {self.c.name} ({i+1}/{num_of_statuses}) ")
+                self.bs.__blitBattleText__(f'"{so.se.name}" IS STILL ', f"APPLIED TO {self.c.name} ({j}/{n})")
                 so.status_d -= 1
 
                 # activate/deactivate stun
@@ -321,6 +323,7 @@ class CreatureOccurrence:
                 # change health
                 self.__takeDamage__(tick_damage)
             i += 1
+            j += 1
 
         # get rid of the textbox
         if self.bs.textbox_up:
@@ -330,12 +333,14 @@ class CreatureOccurrence:
 
         print(f"{self.c.name} USES {move.name}!")
         self.bs.__animateTextbox__(True)
-        self.bs.__blitBattleText__(f'{self.c.name} USES "{move.name}"!')
+        move_text = f'{self.c.name} USES "{move.name}"!'
+        self.bs.__blitBattleText__(move_text)
         hit_roll = 0
 
         # creature targets self
         if move.target_self:
             for i in range(0, move.hit_attempts):
+
                 if move.damage_low < move.damage_high:
                     damage = random.randrange(move.damage_low, move.damage_high+1)
                 else:
@@ -351,7 +356,8 @@ class CreatureOccurrence:
                     self.bs.__blitBattleText__(f"{hit_text} ({i + 1}/{move.hit_attempts})")
 
                 # status proc
-                if status_roll < status_chance:
+                self.bs.__animateRoll__(status_roll, status_chance, hit_text, True)
+                if status_roll > 100 - status_chance:
                     self.__applyStatus__(move.status_effect)
                     self.__checkForExtinguishing__(move.status_effect.type)
 
@@ -394,12 +400,12 @@ class CreatureOccurrence:
                     effectiveness_text = "IT'S EFFECTIVE!"
 
                 # move connects
-                if hit_roll < hit_chance:
+                if hit_roll > 100 - hit_chance:
                     if move.damage_low < move.damage_high:
                         damage = int((random.randrange(move.damage_low, move.damage_high+1) + damage_mod) * damage_multiplier)
                     else:
                         damage = int((move.damage_high + damage_mod) * damage_multiplier)
-                    hit_text = f"TARGET HIT [{hit_chance}%]!"
+                    hit_text = f"TARGET HIT!"
 
                 # graze or miss
                 else:
@@ -410,15 +416,18 @@ class CreatureOccurrence:
                     # teensy extra miss chance
                     damage -= 1
                     if damage > 0:
-                        hit_text = f"TARGET GRAZED [{hit_chance}%]!"
+                        hit_text = f"TARGET GRAZED!"
                     else:
-                        hit_text = f"TARGET MISSED [{hit_chance}%]!"
+                        hit_text = f"TARGET MISSED!"
 
                 # prevent being healed by an enemy when he shoots fire at you (yeah, that happened)
                 if damage < 0:
                     damage = 0
 
-                if hit_roll < hit_chance:
+                if i > 0: # do not repeat "USES" text in roll animation
+                    move_text = ''
+                self.bs.__animateRoll__(hit_roll, hit_chance, move_text, False)
+                if hit_roll > 100 - hit_chance:
                     print(f"{hit_text} ({hit_roll}|{hit_chance})\n{effectiveness_text}")
                     if move.hit_attempts == 1:
                         self.bs.__blitBattleText__(f"{hit_text}", f"{effectiveness_text}")
@@ -434,16 +443,17 @@ class CreatureOccurrence:
                 opponent.__takeDamage__(damage)
                 opponent.__checkForExtinguishing__(move.type)
 
-                if hit_roll < hit_chance and move.status_effect is not None:
+                if hit_roll > 100 - hit_chance and move.status_effect is not None:
                     status_multiplier = opponent.__checkTypeRelationship__(move.status_effect.type)
-                    status_chance = move.status_chance * status_multiplier
+                    status_chance = int(move.status_chance * status_multiplier)
                     status_roll = random.randrange(0, 100)
                     # status proc
-                    if status_roll < status_chance:
+                    self.bs.__animateRoll__(status_roll, status_chance, "", True)
+                    if status_roll > 100 - status_chance:
                         opponent.__applyStatus__(move.status_effect)
                         opponent.__checkForExtinguishing__(move.status_effect.type)
                     else:
-                        print(f"Missed status effect {move.status_effect.name}! ({status_roll}|{status_chance})")
+                        print(f"Missed status effect {move.status_effect.name}!")
 
             # thorn calculations and appliance
             if thorn_mod_low < thorn_mod_high:
@@ -455,7 +465,7 @@ class CreatureOccurrence:
                 print(f"{opponent.c.name} retaliates!")
                 self.bs.__blitBattleText__(f"{opponent.c.name} RETALIATES!")
                 self.__takeDamage__(thorn_damage)
-            elif thorn_mod_low < 0 and hit_roll < hit_chance: # heal yourself if you got a hit
+            elif thorn_mod_low < 0 and hit_roll > 100 - hit_chance: # heal yourself if you got a hit
                 print(f"{self.c.name} leeches health from it's opponent!")
                 self.bs.__blitBattleText__(f"{self.c.name} leeches health from it's opponent!")
                 self.__takeDamage__(thorn_damage)
@@ -543,7 +553,7 @@ all_status_effects = {
                      status_duration=1, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0),
     "BITING FLAMES":
-        StatusEffect(name="FIREWALL", type=all_types["FIRE"], damage_low=0, damage_high=0,
+        StatusEffect(name="BITING FLAMES", type=all_types["FIRE"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=0, damage_mod=0, damage_mod_type=None,
                      status_duration=0, stun_duration=-1,
                      thorn_damage_low=20, thorn_damage_high=24),

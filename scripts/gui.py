@@ -1,3 +1,4 @@
+import random
 import sys
 
 import pygame
@@ -22,6 +23,7 @@ class Color:
         self.WHITE = (255, 255, 255)
         self.BLACK = (0, 0, 0)
         self.GRAY = (68, 68, 68)
+        self.LIGHT_GRAY = (136, 136, 136)
         self.GREEN = (0, 255, 0)
         self.RED = (255, 0, 0)
 
@@ -50,6 +52,7 @@ class GUI:
         pygame.init()
         self.running, self.playing = True, False
 
+        pygame.display.set_caption('PYTHON CREATURE ARENA - Dawid Leszczynski WCY19IJ1S1')
         self.DISPLAY_W, self.DISPLAY_H = 1920, 1080
         self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H), pygame.RESIZABLE)
@@ -82,11 +85,14 @@ class GUI:
 
     # update game based on events
     def __checkEvents__(self):
+
         # check all pending events
         for event in pygame.event.get():
             # quit game
             if event.type == pygame.QUIT:
                 self.running, self.playing, self.current_scene.run_display = False, False, False
+                pygame.quit()
+                exit()
 
             # resize window
             if event.type == pygame.VIDEORESIZE:
@@ -106,11 +112,12 @@ class GUI:
             if event.type == pygame.KEYDOWN:  # any key was pressed down
                 self.keys.keys_down.append(event.key)
 
-    # blit screen and clear keys
+    # blit screen, clear keys and check events
     def __blitScreen__(self):
         self.window.blit(self.display, (0, 0))
         pygame.display.update()
         self.keys.__clearKeys__()
+        self.__checkEvents__()
 
 
 class Scene:
@@ -163,7 +170,9 @@ class MainMenu(Scene):
                     player2 = pl.Player(2, player2_creatures, 3)
 
                     self.run_display = False
-                    self.gui.current_scene = BattleScene(self.gui, player1, player2, 1)
+                    battle_scene = BattleScene(self.gui, player1, player2, 1)
+                    battle_scene.run_display = True
+                    self.gui.current_scene = battle_scene
 
                 if self.selected_y == 2:  # gracefully exit the game
                     pygame.display.quit()
@@ -173,7 +182,6 @@ class MainMenu(Scene):
     # blit menu
     def __displayScene__(self):
         while self.run_display:
-            self.gui.__checkEvents__()
             self.__updateSelected__()
             self.__changeMenuState__()
 
@@ -198,6 +206,8 @@ class BattleScene(Scene):
         self.p2 = p2
         self.speed = speed
         self.textbox_up = False
+        self.p1_button_tips = ["Q", "W", "E", "A", "S", "D", "TAB"]
+        self.p2_button_tips = ["4", "5", "6", "1", "2", "3", "ENT"]
 
         # get animated textbox
         self.dirname = os.path.dirname(__file__)
@@ -217,6 +227,7 @@ class BattleScene(Scene):
             pass
 
         # after it's done, go back to main menu
+        self.gui.main_menu.run_display = True
         self.gui.current_scene = self.gui.main_menu
 
     def __changeHUD__(self):
@@ -243,7 +254,7 @@ class BattleScene(Scene):
             self.gui.display.fill(self.gui.colors.GRAY)
             self.__blitHealth__()
             self.__blitHUD__()
-            __delay__(15 / self.speed)
+            __delay__(10 / self.speed)
 
             textbox = pygame.transform.scale(self.textbox_image[i], (1460 * res_mp, 140 * res_mp))
             rect = self.textbox_image[i].get_rect()
@@ -253,7 +264,7 @@ class BattleScene(Scene):
             i = y(i)
 
         if not zoom_in:
-            __delay__(15 / self.speed)
+            __delay__(10 / self.speed)
             self.gui.display.fill(self.gui.colors.GRAY)
             self.__blitHealth__()
             self.__blitHUD__()
@@ -263,14 +274,17 @@ class BattleScene(Scene):
 
         __delay__(100 / self.speed)
 
-    def __blitBattleText__(self, line1: str, line2: str = None):
+    def __blitTextbox__(self):
         res_mp = self.gui.DISPLAY_W / 1920
         textbox = pygame.transform.scale(self.textbox_image[9], (1460 * res_mp, 140 * res_mp))
         rect = self.textbox_image[9].get_rect()
         rect = rect.move((230 * res_mp, 679 * res_mp))
+        self.gui.display.blit(textbox, rect)
+
+    def __blitBattleText__(self, line1: str, line2: str = None):
 
         if line2 is None:
-            y = 748
+            y = 750
             font_size = 50
         else:
             y = 720
@@ -282,13 +296,14 @@ class BattleScene(Scene):
             self.gui.display.fill(self.gui.colors.GRAY)
             self.__blitHealth__()
             self.__blitHUD__()
-            self.gui.display.blit(textbox, rect)
-            self.gui.__blitText__(message, font_size, 961, y, self.gui.colors.BLACK)
+            self.__blitTextbox__()
+
+            self.gui.__blitText__(message, font_size, 960, y, self.gui.colors.BLACK)
             self.gui.__blitScreen__()
             if c == '!' or c == '.' or c == '?':
                 __delay__(500 / self.speed)  # 500ms delay with punctuation
             else:
-                __delay__(20 / self.speed)  # 20ms delay with letter
+                __delay__(15 / self.speed)  # 15ms delay with letter
 
         if line2 is not None:
             message = ""
@@ -297,9 +312,9 @@ class BattleScene(Scene):
                 self.gui.display.fill(self.gui.colors.GRAY)
                 self.__blitHealth__()
                 self.__blitHUD__()
-                self.gui.display.blit(textbox, rect)
-                self.gui.__blitText__(line1, font_size, 961, y, self.gui.colors.BLACK)
-                self.gui.__blitText__(message, font_size, 961, y+60, self.gui.colors.BLACK)
+                self.__blitTextbox__()
+                self.gui.__blitText__(line1, font_size, 960, y, self.gui.colors.BLACK)
+                self.gui.__blitText__(message, font_size, 960, y+60, self.gui.colors.BLACK)
                 self.gui.__blitScreen__()
                 if c == '!' or c == '.' or c == '?':
                     __delay__(500 / self.speed)  # 500ms delay with punctuation
@@ -329,6 +344,7 @@ class BattleScene(Scene):
         self.gui.__blitText__(health_text, 45, 1440, 210, self.gui.colors.WHITE)
 
     def __animateHealth__(self, ac: sc.CreatureOccurrence, prev_health: int):
+        self.gui.animating = True
 
         # resolution scaling multiplier
         res_mp = self.gui.DISPLAY_W / 1920
@@ -379,6 +395,7 @@ class BattleScene(Scene):
             # finish up hud and blit screen
             self.__blitHUD__()
             self.gui.__blitScreen__()
+            self.gui.animating = False
 
             __delay__(15 / self.speed)
 
@@ -406,3 +423,105 @@ class BattleScene(Scene):
         rect = ability.get_rect()
         rect = rect.move((0, 0))
         self.gui.display.blit(ability, rect)
+
+        # cooldowns
+        for p in (self.p1, self.p2):
+
+            # some variables depending on which player is chosen
+            if p == self.p1:
+                tips = self.p1_button_tips
+                x = 107
+            else:
+                tips = self.p2_button_tips
+                x = 1330
+
+            # cycle through all abilities with cooldowns
+            for i in range(0, 6):
+                if p.ac.cooldowns[i] == 0 and p.ai < 0:
+                    text = tips[i]
+                    color = self.gui.colors.BLACK
+                else:
+                    text = str(p.ac.cooldowns[i])
+                    color = self.gui.colors.LIGHT_GRAY
+
+
+                # some variables depending on iteration
+                y = 908
+                j = i
+                if i > 2:
+                    y = 999
+                    j = i - 3
+
+                # get the text on the board!
+                self.gui.__blitText__(text, 45 , x + j * 242, y, color)
+
+    def __animateRoll__(self, roll: int, chance: int, text_box_message: str, for_status: bool = False):
+
+        # only animate when chances are uncertain
+        if chance < 100:
+
+            # text 3 is just number = delay multiplier and x = terminate
+            text = ["", "", "00000000000000000000000000000011226699x", ""]
+            if for_status:
+                text[0] = "ROLLING FOR STATUS"
+            else:
+                text[0] = "ROLLING FOR HIT"
+
+            to_beat = 100 - chance
+            text[1] = "ROLL TO BEAT: " + str(to_beat)
+
+            if roll > to_beat:
+                text[3] = "SUCCESS!"
+            else:
+                text[3] = "FAILURE!"
+
+            for i in range(0, 4):
+                message = ''
+                __delay__(200 / self.speed)  # 200ms delay between lines
+                for c in text[i]:
+                    message += c
+                    self.gui.display.fill(self.gui.colors.GRAY)
+                    self.__blitHealth__()
+                    self.__blitHUD__()
+                    self.__blitTextbox__()
+                    self.gui.__blitText__(text_box_message, 50, 960, 750, self.gui.colors.BLACK)
+
+                    # keep text when going to new line
+                    if i > 0:
+                        self.gui.__blitText__(text[0], 30, 960, 220, self.gui.colors.WHITE)
+                        if i > 1:
+                            self.gui.__blitText__(text[1], 30, 960, 250, self.gui.colors.WHITE)
+                            if i == 3:
+                                number = "-- " + str(roll) + " --"
+                                self.gui.__blitText__(number, 30, 960, 280, self.gui.colors.WHITE)
+
+
+                    if i == 0: # 1st line - what is this roll for?
+                        self.gui.__blitText__(message, 30, 960, 220, self.gui.colors.WHITE)
+
+                    elif i == 1: # 2nd line - roll to beat?
+                        self.gui.__blitText__(message, 30, 960, 250, self.gui.colors.WHITE)
+
+                    elif i == 2: # 3rd line - random number rolling
+                        if c == 'x': # do the correct number, this is the last iteration
+                            number = "-- " + str(roll) + " --"
+                            __delay__(30 * 9 / self.speed)
+                        else: # random number for SUSPENSE!
+                            number = "-- " + str(random.randrange(0, 100)) + " --"
+                            __delay__(30 * float(c) / self.speed)
+                        self.gui.__blitText__(number, 30, 960, 280, self.gui.colors.WHITE)
+
+                    else: # 5th line - draw out success message
+                        self.gui.__blitText__(message, 30, 960, 340, self.gui.colors.WHITE)
+
+                    self.gui.__blitScreen__()
+                    if c == '!' or c == '.' or c == '?':
+                        __delay__(500 / self.speed)  # 500ms delay with punctuation
+                    else:
+                        __delay__(20 / self.speed)  # 20ms delay with letter
+
+            __delay__(500 / self.speed)  # 500ms delay
+
+
+
+
