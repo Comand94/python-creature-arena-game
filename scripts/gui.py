@@ -21,6 +21,9 @@ def __delay__(time: float):
 class Color:
     def __init__(self):
         self.WHITE = (255, 255, 255)
+        self.NEARLY_WHITE = (200, 200, 200)
+        self.BLEEDING_WHITE = (255, 200, 200)
+        self.BLOOMING_WHITE = (200, 255, 200)
         self.BLACK = (0, 0, 0)
         self.GRAY = (68, 68, 68)
         self.LIGHT_GRAY = (136, 136, 136)
@@ -164,7 +167,7 @@ class MainMenu(Scene):
                 if self.selected_y == 0:  # start a new battle
 
                     player1_creatures = player2_creatures = \
-                        (sc.CreatureOccurrence(sc.all_creatures["FRAGONIRE"]),
+                        (sc.CreatureOccurrence(sc.all_creatures["PSAWARCA"]),
                          sc.CreatureOccurrence(sc.all_creatures["BAMAT"]))
                     player1 = pl.Player(1, player1_creatures, 3)
                     player2 = pl.Player(2, player2_creatures, 3)
@@ -208,6 +211,8 @@ class BattleScene(Scene):
         self.textbox_up = False
         self.p1_button_tips = ["Q", "W", "E", "A", "S", "D", "TAB"]
         self.p2_button_tips = ["4", "5", "6", "1", "2", "3", "ENT"]
+        self.active_player = -1
+        self.last_battle_text = ["", None]
 
         # get animated textbox
         self.dirname = os.path.dirname(__file__)
@@ -246,6 +251,8 @@ class BattleScene(Scene):
             y = lambda index: index + 1
         else:
             self.textbox_up = False
+            self.last_battle_text[0] = None
+            self.last_battle_text[1] = None
             i = 9
             x = lambda index: True if index >= 0 else False
             y = lambda index: index - 1
@@ -282,6 +289,8 @@ class BattleScene(Scene):
         self.gui.display.blit(textbox, rect)
 
     def __blitBattleText__(self, line1: str, line2: str = None):
+        self.last_battle_text[0] = None
+        self.last_battle_text[1] = None
 
         if line2 is None:
             y = 750
@@ -295,31 +304,38 @@ class BattleScene(Scene):
             message += c
             self.gui.display.fill(self.gui.colors.GRAY)
             self.__blitHealth__()
-            self.__blitHUD__()
             self.__blitTextbox__()
+            self.__blitHUD__()
+
 
             self.gui.__blitText__(message, font_size, 960, y, self.gui.colors.BLACK)
             self.gui.__blitScreen__()
-            if c == '!' or c == '.' or c == '?':
-                __delay__(500 / self.speed)  # 500ms delay with punctuation
+            if c == '!' or c == '?':
+                __delay__(500 / self.speed)  # 500ms delay with ! or ?
+            elif c == '.':
+                __delay__(200 / self.speed)  # 500ms delay with .
             else:
                 __delay__(15 / self.speed)  # 15ms delay with letter
+        self.last_battle_text[0] = message
 
         if line2 is not None:
+            self.last_battle_text[1] = ""
             message = ""
             for c in line2:
                 message += c
                 self.gui.display.fill(self.gui.colors.GRAY)
                 self.__blitHealth__()
-                self.__blitHUD__()
                 self.__blitTextbox__()
-                self.gui.__blitText__(line1, font_size, 960, y, self.gui.colors.BLACK)
-                self.gui.__blitText__(message, font_size, 960, y+60, self.gui.colors.BLACK)
+                self.__blitHUD__()
+                self.gui.__blitText__(message, font_size, 960, y + 60, self.gui.colors.BLACK)
                 self.gui.__blitScreen__()
-                if c == '!' or c == '.' or c == '?':
-                    __delay__(500 / self.speed)  # 500ms delay with punctuation
+                if c == '!' or c == '?':
+                    __delay__(500 / self.speed)  # 500ms delay with ! or ?
+                elif c == '.':
+                    __delay__(200 / self.speed)  # 500ms delay with .
                 else:
-                    __delay__(20 / self.speed)  # 20ms delay with letter
+                    __delay__(15 / self.speed)  # 15ms delay with letter
+            self.last_battle_text[1] = message
 
         # 500ms delay at the end of the message
         __delay__(500 / self.speed)
@@ -344,7 +360,6 @@ class BattleScene(Scene):
         self.gui.__blitText__(health_text, 45, 1440, 210, self.gui.colors.WHITE)
 
     def __animateHealth__(self, ac: sc.CreatureOccurrence, prev_health: int):
-        self.gui.animating = True
 
         # resolution scaling multiplier
         res_mp = self.gui.DISPLAY_W / 1920
@@ -356,18 +371,30 @@ class BattleScene(Scene):
             hbar2_x = 987
             htext2_x = 1440
             op = self.p2.ac
+            name_x = 480
+            if self.active_player == -1 or self.active_player == 1:
+                active = True
+            else:
+                active = False
         else:
             hbar_x = 987
             htext_x = 1440
             hbar2_x = 28
             htext2_x = 481
             op = self.p1.ac
+            name_x = 1440
+            if self.active_player == -1 or self.active_player == 2:
+                active = True
+            else:
+                active = False
 
         # add or remove health?
         if prev_health >= ac.health:
+            is_healing = False
             update_health = lambda hp: hp - 1
             should_update = lambda hp: True if hp > ac.health else False
         else:
+            is_healing = True
             update_health = lambda hp: hp + 1
             should_update = lambda hp: True if hp < ac.health else False
 
@@ -392,12 +419,27 @@ class BattleScene(Scene):
             health_text = f"-- {op.health}/{op.c.health} --"
             self.gui.__blitText__(health_text, 45, htext2_x, 210, self.gui.colors.WHITE)
 
-            # finish up hud and blit screen
+            # finish up hud
             self.__blitHUD__()
+
+            # change text color
+            # p1
+            if active and is_healing:
+                color = self.gui.colors.GREEN
+            elif active and not is_healing:
+                color = self.gui.colors.RED
+            elif not active and is_healing:
+                color = self.gui.colors.BLOOMING_WHITE
+            else:
+                color = self.gui.colors.BLEEDING_WHITE
+
+            self.gui.__blitText__(f"{ac.c.name}", 80, name_x, 65, color)
+
+            # blit screen
             self.gui.__blitScreen__()
-            self.gui.animating = False
 
             __delay__(15 / self.speed)
+        __delay__(500 / self.speed)
 
     def __blitHUD__(self):
         # resolution scaling multiplier
@@ -405,10 +447,12 @@ class BattleScene(Scene):
 
         # textbox
         if self.textbox_up is True:
-            textbox = pygame.transform.scale(self.textbox_image[9], (1460 * res_mp, 140 * res_mp))
-            rect = self.textbox_image[9].get_rect()
-            rect = rect.move((230 * res_mp, 679 * res_mp))
-            self.gui.display.blit(textbox, rect)
+            self.__blitTextbox__()
+            if self.last_battle_text[1] is None and self.last_battle_text[0] is not None:
+                self.gui.__blitText__(self.last_battle_text[0], 50, 960, 750, self.gui.colors.BLACK)
+            elif self.last_battle_text[1] is not None and self.last_battle_text[0] is not None:
+                self.gui.__blitText__(self.last_battle_text[0], 45, 960, 720, self.gui.colors.BLACK)
+                self.gui.__blitText__(self.last_battle_text[1], 45, 960, 780, self.gui.colors.BLACK)
 
         # hud
         if self.p1_hud is None or self.p2_hud is None:
@@ -423,6 +467,20 @@ class BattleScene(Scene):
         rect = ability.get_rect()
         rect = rect.move((0, 0))
         self.gui.display.blit(ability, rect)
+
+        # creature names and whether they are active or not
+        # p1
+        if self.active_player == -1 or self.active_player == 1:
+            color = self.gui.colors.BLACK
+        else:
+            color = self.gui.colors.NEARLY_WHITE
+        self.gui.__blitText__(f"{self.p1.ac.c.name}", 80, 480, 65, color)
+        # p2
+        if self.active_player == -1 or self.active_player == 2:
+            color = self.gui.colors.BLACK
+        else:
+            color = self.gui.colors.NEARLY_WHITE
+        self.gui.__blitText__(f"{self.p2.ac.c.name}", 80, 1440, 65, color)
 
         # cooldowns
         for p in (self.p1, self.p2):
@@ -444,7 +502,6 @@ class BattleScene(Scene):
                     text = str(p.ac.cooldowns[i])
                     color = self.gui.colors.LIGHT_GRAY
 
-
                 # some variables depending on iteration
                 y = 908
                 j = i
@@ -453,10 +510,10 @@ class BattleScene(Scene):
                     j = i - 3
 
                 # get the text on the board!
-                self.gui.__blitText__(text, 45 , x + j * 242, y, color)
+                self.gui.__blitText__(text, 45, x + j * 242, y, color)
 
-    def __animateRoll__(self, roll: int, chance: int, text_box_message: str, for_status: bool = False):
 
+    def __animateRoll__(self, roll: int, chance: int, for_status: bool = False):
         # only animate when chances are uncertain
         if chance < 100:
 
@@ -482,9 +539,9 @@ class BattleScene(Scene):
                     message += c
                     self.gui.display.fill(self.gui.colors.GRAY)
                     self.__blitHealth__()
-                    self.__blitHUD__()
                     self.__blitTextbox__()
-                    self.gui.__blitText__(text_box_message, 50, 960, 750, self.gui.colors.BLACK)
+                    self.__blitHUD__()
+
 
                     # keep text when going to new line
                     if i > 0:
@@ -495,33 +552,85 @@ class BattleScene(Scene):
                                 number = "-- " + str(roll) + " --"
                                 self.gui.__blitText__(number, 30, 960, 280, self.gui.colors.WHITE)
 
-
-                    if i == 0: # 1st line - what is this roll for?
+                    if i == 0:  # 1st line - what is this roll for?
                         self.gui.__blitText__(message, 30, 960, 220, self.gui.colors.WHITE)
 
-                    elif i == 1: # 2nd line - roll to beat?
+                    elif i == 1:  # 2nd line - roll to beat?
                         self.gui.__blitText__(message, 30, 960, 250, self.gui.colors.WHITE)
 
-                    elif i == 2: # 3rd line - random number rolling
-                        if c == 'x': # do the correct number, this is the last iteration
+                    elif i == 2:  # 3rd line - random number rolling
+                        if c == 'x':  # do the correct number, this is the last iteration
                             number = "-- " + str(roll) + " --"
                             __delay__(30 * 9 / self.speed)
-                        else: # random number for SUSPENSE!
+                        else:  # random number for SUSPENSE!
                             number = "-- " + str(random.randrange(0, 100)) + " --"
                             __delay__(30 * float(c) / self.speed)
                         self.gui.__blitText__(number, 30, 960, 280, self.gui.colors.WHITE)
 
-                    else: # 5th line - draw out success message
+                    else:  # 5th line - draw out success message
                         self.gui.__blitText__(message, 30, 960, 340, self.gui.colors.WHITE)
 
                     self.gui.__blitScreen__()
-                    if c == '!' or c == '.' or c == '?':
-                        __delay__(500 / self.speed)  # 500ms delay with punctuation
+                    if c == '!' or c == '?':
+                        __delay__(500 / self.speed)  # 500ms delay with ! or ?
+                    elif c == '.':
+                        __delay__(200 / self.speed)  # 500ms delay with .
                     else:
-                        __delay__(20 / self.speed)  # 20ms delay with letter
+                        __delay__(15 / self.speed)  # 15ms delay with letter
 
             __delay__(500 / self.speed)  # 500ms delay
 
 
+    def __animateMovePriority__(self, p1_move_speed: int, p2_move_speed: int, moves_first: int):
+        text = ["WHO MOVES FIRST?", f"{p1_move_speed}-SPEED VS {p2_move_speed}-SPEED", "", ""]
 
+        if p1_move_speed == p2_move_speed:
+            text[2] = "UNDECIDED!"
+        elif moves_first == 1:
+            text[2] = "PLAYER 1 IS FASTER!"
+        else:
+            text[2] = "PLAYER 2 IS FASTER!"
 
+        if moves_first == 1:
+            text[3] = "PLAYER 1 MOVES FIRST!"
+        else:
+            text[3] = "PLAYER 2 MOVES FIRST!"
+
+        for i in range(0, 4):
+            message = ''
+            __delay__(200 / self.speed)  # 200ms delay between lines
+            for c in text[i]:
+                message += c
+                self.gui.display.fill(self.gui.colors.GRAY)
+                self.__blitHealth__()
+                self.__blitHUD__()
+
+                # keep text when going to new line
+                if i > 0:
+                    self.gui.__blitText__(text[0], 30, 960, 220, self.gui.colors.WHITE)
+                    if i > 1:
+                        self.gui.__blitText__(text[1], 30, 960, 250, self.gui.colors.WHITE)
+                        if i > 2:
+                            self.gui.__blitText__(text[2], 30, 960, 310, self.gui.colors.WHITE)
+
+                if i == 0:  # 1st line - question
+                    self.gui.__blitText__(message, 30, 960, 220, self.gui.colors.WHITE)
+
+                elif i == 1:  # 2nd line - speed comparison
+                    self.gui.__blitText__(message, 30, 960, 250, self.gui.colors.WHITE)
+
+                elif i == 2:  # 4th line - IS IT DECIDED WITHOUT CHANCE?
+                    self.gui.__blitText__(message, 30, 960, 310, self.gui.colors.WHITE)
+
+                else:  # 5th line - who moves first though?
+                    self.gui.__blitText__(message, 30, 960, 340, self.gui.colors.WHITE)
+
+                self.gui.__blitScreen__()
+                if c == '!' or c == '?':
+                    __delay__(500 / self.speed)  # 500ms delay with ! or ?
+                elif c == '.':
+                    __delay__(200 / self.speed)  # 500ms delay with .
+                else:
+                    __delay__(15 / self.speed)  # 15ms delay with letter
+
+        __delay__(500 / self.speed)  # 500ms delay

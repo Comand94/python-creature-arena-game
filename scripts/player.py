@@ -12,7 +12,7 @@ import scripts.creatures as cr
 #       for moves that require different scoring
 
 num_of_creatures = cr.all_creatures.__len__()
-cr_mo_op_multiplier = [[[1.0 for x in range(num_of_creatures)] for y in range(5)] for z in range(num_of_creatures)]
+cr_mo_op_multiplier = [[[1.0 for x in range(num_of_creatures)] for y in range(6)] for z in range(num_of_creatures)]
 
 # now for individual touch...
 
@@ -35,6 +35,11 @@ for i in range(0, num_of_creatures):
 # same for escape to void, but way more extreme (defense_mod of 200 makes it very appealing to AI)
 for i in range(0, num_of_creatures):
     cr_mo_op_multiplier[3][1][i] = 0.2
+
+# health kit / change creature multiplier
+for i in range(0, num_of_creatures):
+    for j in range(0, num_of_creatures):
+        cr_mo_op_multiplier[i][5][j] = 1.5
 
 
 # score status deadliness against opponent
@@ -281,65 +286,87 @@ class Player:
         self.random_score_factor_cap = 0.25 - float(self.ai / 20)
 
     # was guess correct?
-    def risk_evaluation(self, op_assumed: int, op_roll: int, counter_mode: str):
-        print(f"pre-round raf and baf for {self.ac.c.name} "
-              f"{self.risk_aversion_factor} {self.assume_blunder_factor}")
-        if op_assumed == op_roll: # it was correct
-            if counter_mode == "c": # aversion subsides
-                self.risk_aversion_factor -= 0.1
-                if self.risk_aversion_factor < 0.2:
-                    self.risk_aversion_factor = 0.2
-            else: # blunder assumptions rise
-                self.assume_blunder_factor += 0.1
-                if self.assume_blunder_factor > 0.8:
-                    self.assume_blunder_factor = 0.8
-        elif op_assumed != -1: # it was incorrect
-            if counter_mode == "c": # aversion increases doubly
-                self.risk_aversion_factor += 0.2
-                if self.risk_aversion_factor > 0.9:
-                    self.risk_aversion_factor = 0.9
-            else: # blunder assumptions decrease doubly
-                self.assume_blunder_factor -= 0.2
-                if self.assume_blunder_factor < 0.1:
-                    self.assume_blunder_factor = 0.1
-        print(f"post-round raf and baf for {self.ac.c.name} "
-              f"{self.risk_aversion_factor} {self.assume_blunder_factor}")
+    def risk_evaluation(self, op_assumed: int, op_assumed_name: str, op_roll: int, counter_mode: str):
+
+        if counter_mode != "": # if an assumption was made at all
+
+            text = ["", "", ""]
+
+            if counter_mode == "c":
+                text[0] = f"PLAYER {self.id} THOUGHT IT'S OPPONENT WILL MAKE"
+                text[1] = f'A SAFE MOVE OF "{op_assumed_name}"...'
+            else:
+                text[0] = f"PLAYER {self.id} THOUGHT IT'S OPPONENT WILL MAKE"
+                text[1] = f'A RISKY MOVE OF "{op_assumed_name}"...'
+
+            print(f"pre-round raf and baf for {self.ac.c.name} "
+                  f"{self.risk_aversion_factor} {self.assume_blunder_factor}")
+            if op_assumed == op_roll: # it was correct
+                text[2] = f"PLAYER {self.id} WAS RIGHT! BEHAVIOUR REINFORCED!"
+
+                if counter_mode == "c": # aversion subsides
+                    self.risk_aversion_factor -= 0.1
+                    if self.risk_aversion_factor < 0.2:
+                        self.risk_aversion_factor = 0.2
+                else: # blunder assumptions rise
+                    self.assume_blunder_factor += 0.1
+                    if self.assume_blunder_factor > 0.8:
+                        self.assume_blunder_factor = 0.8
+            elif op_assumed != -1: # it was incorrect
+                text[2] = f"PLAYER {self.id} WAS WRONG! BEHAVIOUR PUNISHED!"
+
+                if counter_mode == "c": # aversion increases doubly
+                    self.risk_aversion_factor += 0.2
+                    if self.risk_aversion_factor > 0.9:
+                        self.risk_aversion_factor = 0.9
+                else: # blunder assumptions decrease doubly
+                    self.assume_blunder_factor -= 0.2
+                    if self.assume_blunder_factor < 0.1:
+                        self.assume_blunder_factor = 0.1
+            print(f"post-round raf and baf for {self.ac.c.name} "
+                  f"{self.risk_aversion_factor} {self.assume_blunder_factor}")
+
+            if self.ac.bs is not None:
+                self.ac.bs.__animateTextbox__(True)
+                self.ac.bs.__blitBattleText__(text[0], text[1])
+                self.ac.bs.__blitBattleText__(text[2])
+                self.ac.bs.__animateTextbox__(False)
 
     # returns move index and assumed opponent move if risking, else -1, and a string code "" "c" or "cc"
     # "" stands for normal move, "c" for "countermove" and "cc" for "counter-countermove"
     def __calculateMove__(self, opponent: cr.CreatureOccurrence) -> (int, int, str):
         if self.ai <= 0:  # dumb ai makes random moves
-            move_roll = random.randrange(0, 5)
+            move_roll = random.randrange(0, 6)
             while self.ac.cooldowns[move_roll] >= 1:
-                move_roll = random.randrange(0, 5)
+                move_roll = random.randrange(0, 6)
 
         if self.ai > 0:  # ai calculates rewards of each move in every possible scenario
 
-            move_ai_score_sum = [0, 0, 0, 0, 0]
-            opponent_score_sum = [0, 0, 0, 0, 0]
-            rewards_ai = [0, 0, 0, 0, 0]
+            move_ai_score_sum = [0, 0, 0, 0, 0, 0]
+            opponent_score_sum = [0, 0, 0, 0, 0, 0]
+            rewards_ai = [0, 0, 0, 0, 0, 0]
             best_avg_moves_ai_0, best_avg_moves_ai_1 = -1, -1
             best_avg_rewards_ai_0, best_avg_rewards_ai_1 = -100000, -100000
 
-            move_opponent_score_sum = [0, 0, 0, 0, 0]
-            ai_score_sum = [0, 0, 0, 0, 0]
-            n_opponent = [0, 0, 0, 0, 0]
-            rewards_opponent = [0, 0, 0, 0, 0]
+            move_opponent_score_sum = [0, 0, 0, 0, 0, 0]
+            ai_score_sum = [0, 0, 0, 0, 0, 0]
+            n_opponent = [0, 0, 0, 0, 0, 0]
+            rewards_opponent = [0, 0, 0, 0, 0, 0]
             best_avg_move_opponent = -1
             best_avg_move_opponent_reward = -100000
 
-            move_opponent_best_ai_counter_move = [-1, -1, -1, -1, -1]
-            move_opponent_best_ai_counter_move_score = [-100000, -100000, -100000, -100000, -100000]
+            move_opponent_best_ai_counter_move = [-1, -1, -1, -1, -1, -1]
+            move_opponent_best_ai_counter_move_score = [-100000, -100000, -100000, -100000, -100000, -100000]
 
-            move_ai_best_opponent_counter_move = [-1, -1, -1, -1, -1]
-            move_ai_best_opponent_counter_move_score = [-100000, -100000, -100000, -100000, -100000]
+            move_ai_best_opponent_counter_move = [-1, -1, -1, -1, -1, -1]
+            move_ai_best_opponent_counter_move_score = [-100000, -100000, -100000, -100000, -100000, -100000]
 
             ami = 0
-            while ami < 5:
+            while ami < 6:
                 n = 0
                 if self.ac.cooldowns[ami] <= 0:  # ai move to take into account
                     omi = 0
-                    while omi < 5:
+                    while omi < 6:
                         if opponent.cooldowns[omi] <= 0:  # opponent move to take into account
 
                             # calculate move score for moves in pairs
@@ -388,7 +415,7 @@ class Player:
                 ami += 1
 
             # figure out opponent average reward of average (safe) move
-            for ind in range(0, 5):
+            for ind in range(0, 6):
                 if n_opponent[ind] != 0: # relevant moves only (off-cooldown)
                     rewards_opponent[ind] /= n_opponent[ind]
                     if rewards_opponent[ind] > best_avg_move_opponent_reward:
