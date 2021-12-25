@@ -51,7 +51,8 @@ class StatusEffect:
     def __init__(self, name: str, type: Type, damage_low: int = 0, damage_high: int = 0,
                  aim_mod: int = 0, defense_mod: int = 0, damage_mod: int = 0, damage_mod_type: Type = None,
                  status_duration: int = 0, stun_duration: int = -1,
-                 thorn_damage_low: int = 0, thorn_damage_high: int = 0):
+                 thorn_damage_low: int = 0, thorn_damage_high: int = 0,
+                 extinguish_scoring: int = 30):
         self.name = name
         self.type = type
         # damage has a range, with negative values, damage can heal back health permanently over time
@@ -77,6 +78,13 @@ class StatusEffect:
         # thorn on negative values allows healing ("leeching" health)
         self.thorn_damage_low = thorn_damage_low
         self.thorn_damage_high = thorn_damage_high
+        # scoring is used by AI to prevent it from extinguishing positive effects with health kit
+        # scoring is multiplied by each turn of duration left!
+        # stun has scoring coded into player.py, it should not be taken into account
+        # score for removing from yourself
+        # negative of score for removing from opponent
+        # self-inflicted status effects will have negative score
+        self.extinguish_scoring = extinguish_scoring
 
 
 # applied status copy and damage_modifier reflecting weakness/resistance/immunity
@@ -144,7 +152,7 @@ class CreatureOccurrence:
         self.active_statuses: list[StatusOccurrence, ...]
         self.active_statuses = []
         self.isStunned = False
-        self.cooldowns = [0, 0, 0, 0, 0, 0]
+        self.cooldowns = [0, 0, 0, 0, 0, 9]
         self.total_damage_healed = 0 # for statistics
 
 
@@ -153,7 +161,7 @@ class CreatureOccurrence:
 
     def __tickCooldowns__(self):
         print(f"Cooldowns of {self.c.name}: ")
-        for i in range(0, 5):
+        for i in range(0, 6):
             if self.cooldowns[i] >= 1:
                 self.cooldowns[i] -= 1
             print(self.cooldowns[i], end=", ")
@@ -330,6 +338,9 @@ class CreatureOccurrence:
         if self.bs.textbox_up:
             self.bs.__animateTextbox__(False)
 
+        # re-calculate bonuses for gui after all effects are settled or extinguished
+        self.bs.__calculateModifiers__()
+
     def __makeMove__(self, opponent: CreatureOccurrence, move: Move):
 
         self.bs.__animateTextbox__(True)
@@ -467,9 +478,9 @@ class CreatureOccurrence:
                 print(f"{opponent.c.name} retaliates!")
                 self.bs.__blitBattleText__(f"{opponent.c.name} RETALIATES!")
                 self.__takeDamage__(thorn_damage)
-            elif thorn_mod_low < 0 and hit_roll > 100 - hit_chance: # heal yourself if you got a hit
+            elif thorn_mod_low < 0 and damage > 0: # heal yourself if you got a hit or a graze
                 print(f"{self.c.name} leeches health from it's opponent!")
-                self.bs.__blitBattleText__(f"{self.c.name} leeches health from it's opponent!")
+                self.bs.__blitBattleText__(f"{self.c.name} LEECHES HEALTH FROM OPPONENT!")
                 self.__takeDamage__(thorn_damage)
 
         # textbox out
@@ -512,13 +523,14 @@ all_types["GHOST"].__addWeakness__(all_types["PSYCHIC"])
 all_types["WIND"].__addResistances__(all_types["WIND"])
 
 all_types["VAMPIRIC"].__addResistances__(all_types["VAMPIRIC"])
+all_types["VAMPIRIC"].__addResistances__(all_types["MAGIC"])
 
 all_types["MAGIC"].__addResistances__(all_types["MAGIC"])
 all_types["MAGIC"].__addResistances__(all_types["FIRE"])
 all_types["MAGIC"].__addResistances__(all_types["WATER"])
 all_types["MAGIC"].__addResistances__(all_types["ELECTRIC"])
-all_types["MAGIC"].__addResistances__(all_types["PSYCHIC"])
 all_types["MAGIC"].__addResistances__(all_types["GRASS"])
+all_types["MAGIC"].__addResistances__(all_types["WIND"])
 all_types["MAGIC"].__addWeakness__(all_types["PHYSICAL"])
 
 all_types["GRASS"].__addResistances__(all_types["GRASS"])
@@ -543,95 +555,95 @@ all_status_effects = {
         StatusEffect(name="BURNING", type=all_types["FIRE"], damage_low=2, damage_high=2,
                      aim_mod=-4, defense_mod=0, damage_mod=0, damage_mod_type=None,
                      status_duration=3, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=5),
     "WARMING":
         StatusEffect(name="WARMING", type=all_types["FIRE"], damage_low=-4, damage_high=-3,
                      aim_mod=0, defense_mod=0, damage_mod=0, damage_mod_type=None,
                      status_duration=4, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=-10),
     "AIRBORNE":
         StatusEffect(name="AIRBORNE", type=all_types["FLYING"], damage_low=0, damage_high=0,
                      aim_mod=20, defense_mod=50, damage_mod=1, damage_mod_type=all_types["FIRE"],
                      status_duration=1, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=-20),
     "BITING FLAMES":
         StatusEffect(name="BITING FLAMES", type=all_types["FIRE"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=0, damage_mod=0, damage_mod_type=None,
                      status_duration=0, stun_duration=-1,
-                     thorn_damage_low=20, thorn_damage_high=24),
+                     thorn_damage_low=20, thorn_damage_high=24, extinguish_scoring=0),
 
     # SCHONIPS THE SHOCK SNAKE
     "ELECTRIC FORT.":
         StatusEffect(name="ELECTRIC FORT.", type=all_types["ELECTRIC"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=0, damage_mod=2, damage_mod_type=all_types["ELECTRIC"],
                      status_duration=3, stun_duration=-1,
-                     thorn_damage_low=2, thorn_damage_high=6),
+                     thorn_damage_low=2, thorn_damage_high=6, extinguish_scoring=-10),
     "SHOCKED":
         StatusEffect(name="SHOCKED", type=all_types["ELECTRIC"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=-5, damage_mod=-1, damage_mod_type=None,
                      status_duration=3, stun_duration=1,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=5),
     "SNAKE REGENERATION":
         StatusEffect(name="SNAKE REGENERATION", type=all_types["PHYSICAL"], damage_low=-3, damage_high=-2,
                      aim_mod=0, defense_mod=5, damage_mod=0, damage_mod_type=None,
                      status_duration=6, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=-5),
 
     # PSAWARCA THE PSYCHIC WATER ORCA
     "MENTAL IMPAIRMENT":
         StatusEffect(name="MENTAL IMPAIRMENT", type=all_types["PSYCHIC"], damage_low=0, damage_high=0,
                      aim_mod=-10, defense_mod=-5, damage_mod=-1, damage_mod_type=None,
                      status_duration=1, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=10),
     "WET":
         StatusEffect(name="WET", type=all_types["WATER"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=-5, damage_mod=-3, damage_mod_type=all_types["FIRE"],
                      status_duration=2, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=5),
     "PSYCHIC SHIELD":
         StatusEffect(name="PSYCHIC SHIELD", type=all_types["PSYCHIC"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=25, damage_mod=0, damage_mod_type=None,
                      status_duration=3, stun_duration=-1,
-                     thorn_damage_low=2, thorn_damage_high=3),
+                     thorn_damage_low=2, thorn_damage_high=3, extinguish_scoring=-10),
 
     # SHIGOWI THE WIND SHAPESHIFTER
     "HIDDEN BY VOID":
         StatusEffect(name="HIDDEN BY VOID", type=all_types["GHOST"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=400, damage_mod=0, damage_mod_type=None,
                      status_duration=0, stun_duration=-1,
-                     thorn_damage_low=4, thorn_damage_high=8),
+                     thorn_damage_low=4, thorn_damage_high=8, extinguish_scoring=0),
     "TRIPPED":
         StatusEffect(name="TRIPPED", type=all_types["PHYSICAL"], damage_low=0, damage_high=4,
                      aim_mod=0, defense_mod=0, damage_mod=0, damage_mod_type=None,
                      status_duration=0, stun_duration=0,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=0),
     "NULLIFICATION":
         StatusEffect(name="NULLIFICATION", type=all_types["NULLIFY"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=10, damage_mod=0, damage_mod_type=None,
                      status_duration=1, stun_duration=1,
-                     thorn_damage_low=20, thorn_damage_high=30),
+                     thorn_damage_low=20, thorn_damage_high=30, extinguish_scoring=-5),
 
     # BAMAT THE LARGE MAGICAL BAT
     "VAMPIRIC PHEROMONES":
         StatusEffect(name="VAMPIRIC PHEROMONES", type=all_types["VAMPIRIC"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=-10, damage_mod=0, damage_mod_type=None,
                      status_duration=3, stun_duration=-1,
-                     thorn_damage_low=-6, thorn_damage_high=-4),
+                     thorn_damage_low=-6, thorn_damage_high=-4, extinguish_scoring=10),
     "HUNGER":
         StatusEffect(name="HUNGER", type=all_types["VAMPIRIC"], damage_low=1, damage_high=2,
                      aim_mod=-2, defense_mod=-2, damage_mod=0, damage_mod_type=None,
                      status_duration=9, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=5),
     "BLIND":
         StatusEffect(name="BLIND", type=all_types["MAGIC"], damage_low=0, damage_high=0,
                      aim_mod=-20, defense_mod=-10, damage_mod=-1, damage_mod_type=None,
                      status_duration=2, stun_duration=1,
-                     thorn_damage_low=0, thorn_damage_high=0),
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=10),
     "MAGIC SHIELD":
         StatusEffect(name="MAGIC SHIELD", type=all_types["MAGIC"], damage_low=-2, damage_high=0,
                      aim_mod=0, defense_mod=5, damage_mod=0, damage_mod_type=None,
                      status_duration=4, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=3),
+                     thorn_damage_low=0, thorn_damage_high=3, extinguish_scoring=-10),
 }
 
 all_moves = {
@@ -639,8 +651,8 @@ all_moves = {
     "HEALTH KIT":
         Move(name="HEALTH KIT",
              type=all_types["NULLIFY"], speed=1, target_self=True,
-             damage_low=-16, damage_high=-8, aim=200, hit_attempts=1,
-             status_effect=None, status_chance=0, cooldown=12),
+             damage_low=-8, damage_high=-4, aim=200, hit_attempts=1,
+             status_effect=None, status_chance=0, cooldown=9),
 
     # FRAGONIRE THE FIRE DRAGON
     "FIRE BREATH":
@@ -705,7 +717,7 @@ all_moves = {
     "WATER CANNON":
         Move(name="WATER CANNON",
              type=all_types["WATER"], speed=3, target_self=False,
-             damage_low=8, damage_high=16, aim=90, hit_attempts=1,
+             damage_low=12, damage_high=12, aim=90, hit_attempts=1,
              status_effect=all_status_effects["WET"], status_chance=100, cooldown=2),
     "ILLUSORY SHIELDING":
         Move(name="ILLUSORY SHIELDING",
@@ -715,12 +727,12 @@ all_moves = {
     "MIRACLE REGEN":
         Move(name="MIRACLE REGEN",
              type=all_types["PSYCHIC"], speed=2, target_self=True,
-             damage_low=-5, damage_high=-1, aim=200, hit_attempts=5,
+             damage_low=-4, damage_high=-1, aim=200, hit_attempts=5,
              status_effect=None, status_chance=0, cooldown=5),
     "WATER WAVE":
         Move(name="WATER WAVE",
-             type=all_types["WATER"], speed=4, target_self=False,
-             damage_low=12, damage_high=14, aim=80, hit_attempts=1,
+             type=all_types["WATER"], speed=2, target_self=False,
+             damage_low=12, damage_high=18, aim=80, hit_attempts=1,
              status_effect=all_status_effects["WET"], status_chance=100, cooldown=2),
 
     # SHIGOWI THE WIND GHOST SHAPESHIFTER
@@ -763,7 +775,7 @@ all_moves = {
              damage_low=4, damage_high=8, aim=110, hit_attempts=1,
              status_effect=all_status_effects["BLIND"], status_chance=80, cooldown=7),
     "MAGICAL REINFORCEMENT":
-        Move(name="MAGICAL REINFORCEMENT", type=all_types["MAGIC"], speed=2, target_self=True,
+        Move(name="MAGICAL REINFORCEMENT", type=all_types["MAGIC"], speed=5, target_self=True,
              damage_low=0, damage_high=0, aim=200, hit_attempts=1,
              status_effect=all_status_effects["MAGIC SHIELD"], status_chance=100, cooldown=0),
 
@@ -794,7 +806,7 @@ all_creatures = {
 
     "BAMAT":
         Creature(id=4, name="BAMAT", desc="The Large Magical Bat Bamat",
-                 health=75, defense=-10, move1=all_moves["BAT BITE"], move2=all_moves["DROP OF BLOOD"],
+                 health=70, defense=-10, move1=all_moves["BAT BITE"], move2=all_moves["DROP OF BLOOD"],
                  move3=all_moves["STARVE OPPONENT"], move4=all_moves["BLINDING LIGHT"], move5=all_moves["MAGICAL REINFORCEMENT"],
                  types=(all_types["VAMPIRIC"], all_types["MAGIC"], all_types["PHYSICAL"]))
 }

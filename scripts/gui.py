@@ -4,7 +4,7 @@ import sys
 import pygame
 import os  # os.path.join
 
-import scripts.creatures as sc
+import scripts.creatures as cr
 # import scripts.battle as sb #imported through BattleScene constructor
 import scripts.player as pl
 import scripts.spritesheet as ss
@@ -23,12 +23,14 @@ class Color:
         self.WHITE = (255, 255, 255)
         self.NEARLY_WHITE = (200, 200, 200)
         self.BLEEDING_WHITE = (255, 200, 200)
-        self.BLOOMING_WHITE = (200, 255, 200)
+        self.GREENING_WHITE = (200, 255, 200)
+        self.BLUEISH_WHITE = (200, 200, 255)
         self.BLACK = (0, 0, 0)
         self.GRAY = (68, 68, 68)
         self.LIGHT_GRAY = (136, 136, 136)
         self.GREEN = (0, 255, 0)
         self.RED = (255, 0, 0)
+        self.BLUE = (0, 0, 255)
 
 
 # pressed keys and key definitions
@@ -167,13 +169,13 @@ class MainMenu(Scene):
                 if self.selected_y == 0:  # start a new battle
 
                     player1_creatures = player2_creatures = \
-                        (sc.CreatureOccurrence(sc.all_creatures["PSAWARCA"]),
-                         sc.CreatureOccurrence(sc.all_creatures["BAMAT"]))
-                    player1 = pl.Player(1, player1_creatures, 3)
+                        (cr.CreatureOccurrence(cr.all_creatures["PSAWARCA"]),
+                         cr.CreatureOccurrence(cr.all_creatures["BAMAT"]))
+                    player1 = pl.Player(1, player1_creatures, -1)
                     player2 = pl.Player(2, player2_creatures, 3)
 
                     self.run_display = False
-                    battle_scene = BattleScene(self.gui, player1, player2, 1)
+                    battle_scene = BattleScene(self.gui, player1, player2, 2)
                     battle_scene.run_display = True
                     self.gui.current_scene = battle_scene
 
@@ -213,6 +215,11 @@ class BattleScene(Scene):
         self.p2_button_tips = ["4", "5", "6", "1", "2", "3", "ENT"]
         self.active_player = -1
         self.last_battle_text = ["", None]
+        self.player_aim_mods = [0, 0]
+        self.player_def_mods = [0, 0]
+        self.player_thorn_lows = [0, 0]
+        self.player_thorn_highs = [0, 0]
+
 
         # get animated textbox
         self.dirname = os.path.dirname(__file__)
@@ -225,6 +232,54 @@ class BattleScene(Scene):
 
         import scripts.battle as sb
         self.battle = sb.Battle(self, p1, p2, speed)
+
+    def __updateMoves__(self, p1_curr_move: int, p2_curr_move: int) -> (int, int):
+
+        # starting point for p1 moves
+        if self.p1.ai >= 0 or p1_curr_move >= 0:
+            p1_chosen_move = p1_curr_move
+        elif self.p1.ac.isStunned:
+            p1_chosen_move = -2
+        else:
+            p1_chosen_move = -1
+
+        # starting point for p2 moves
+        if self.p2.ai >= 0 or p2_curr_move >=0:
+            p2_chosen_move = p2_curr_move
+        elif self.p2.ac.isStunned:
+            p2_chosen_move = -2
+        else:
+            p2_chosen_move = -1
+
+        # update moves if off cooldown
+        for k in self.gui.keys.keys_down:
+            if p1_chosen_move == -1 and self.p1.ai < 0:
+                if k == self.gui.keys.Q and self.p1.ac.cooldowns[0] <= 0:
+                    p1_chosen_move = 0
+                if k == self.gui.keys.W and self.p1.ac.cooldowns[1] <= 0:
+                    p1_chosen_move = 1
+                if k == self.gui.keys.E and self.p1.ac.cooldowns[2] <= 0:
+                    p1_chosen_move = 2
+                if k == self.gui.keys.A and self.p1.ac.cooldowns[3] <= 0:
+                    p1_chosen_move = 3
+                if k == self.gui.keys.S and self.p1.ac.cooldowns[4] <= 0:
+                    p1_chosen_move = 4
+                if k == self.gui.keys.D and self.p1.ac.cooldowns[5] <= 0:
+                    p1_chosen_move = 5
+            if p2_chosen_move == -1 and self.p2.ai < 0:
+                if k == self.gui.keys.NP_4 and self.p2.ac.cooldowns[0] <= 0:
+                    p2_chosen_move = 0
+                if k == self.gui.keys.NP_5 and self.p2.ac.cooldowns[1] <= 0:
+                    p2_chosen_move = 1
+                if k == self.gui.keys.NP_6 and self.p2.ac.cooldowns[2] <= 0:
+                    p2_chosen_move = 2
+                if k == self.gui.keys.NP_1 and self.p2.ac.cooldowns[3] <= 0:
+                    p2_chosen_move = 3
+                if k == self.gui.keys.NP_2 and self.p2.ac.cooldowns[4] <= 0:
+                    p2_chosen_move = 4
+                if k == self.gui.keys.NP_3 and self.p2.ac.cooldowns[5] <= 0:
+                    p2_chosen_move = 5
+        return p1_chosen_move, p2_chosen_move
 
     def __displayScene__(self):
         # while running, battle.py will do the work
@@ -359,7 +414,7 @@ class BattleScene(Scene):
         health_text = f"-- {self.p2.ac.health}/{self.p2.ac.c.health} --"
         self.gui.__blitText__(health_text, 45, 1440, 210, self.gui.colors.WHITE)
 
-    def __animateHealth__(self, ac: sc.CreatureOccurrence, prev_health: int):
+    def __animateHealth__(self, ac: cr.CreatureOccurrence, prev_health: int):
 
         # resolution scaling multiplier
         res_mp = self.gui.DISPLAY_W / 1920
@@ -429,7 +484,7 @@ class BattleScene(Scene):
             elif active and not is_healing:
                 color = self.gui.colors.RED
             elif not active and is_healing:
-                color = self.gui.colors.BLOOMING_WHITE
+                color = self.gui.colors.GREENING_WHITE
             else:
                 color = self.gui.colors.BLEEDING_WHITE
 
@@ -634,3 +689,67 @@ class BattleScene(Scene):
                     __delay__(15 / self.speed)  # 15ms delay with letter
 
         __delay__(500 / self.speed)  # 500ms delay
+
+    def __blitReadiness__(self, p1_move_roll: int, p2_move_roll: int):
+
+        # resolution scaling multiplier
+        res_mp = self.gui.DISPLAY_W / 1920
+
+        ready_width = 933
+        ready_height = 206
+
+        p1_ready_rect = pygame.Rect((res_mp * 21, res_mp * 848, res_mp * ready_width, res_mp * ready_height))
+        p2_ready_rect = pygame.Rect((res_mp * 969, res_mp * 848, res_mp * ready_width, res_mp * ready_height))
+
+        if 0 <= p1_move_roll <= 5: # p1 ready
+            self.gui.display.fill(self.gui.colors.GREEN, p1_ready_rect)
+        elif p1_move_roll == -2:
+            self.gui.display.fill(self.gui.colors.BLUE, p1_ready_rect)
+        else:
+            self.gui.display.fill(self.gui.colors.RED, p1_ready_rect)
+
+        if 0 <= p2_move_roll <= 5: # p1 ready
+            self.gui.display.fill(self.gui.colors.GREEN, p2_ready_rect)
+        elif p2_move_roll == -2:
+            self.gui.display.fill(self.gui.colors.BLUE, p2_ready_rect)
+        else:
+            self.gui.display.fill(self.gui.colors.RED, p2_ready_rect)
+
+    def __calculateModifiers__(self): # called by tickStatuses
+
+        # reset
+        self.player_aim_mods = [0, 0]
+        self.player_def_mods = [0, 0]
+        self.player_thorn_lows = [0, 0]
+        self.player_thorn_highs = [0, 0]
+
+        # re-calculate
+        for p in (self.p1, self.p2):
+            so: cr.StatusOccurrence
+            for so in p.ac.active_statuses:
+                self.player_aim_mods[p.id - 1] += so.se.aim_mod
+                self.player_def_mods[p.id - 1] += so.se.defense_mod
+                self.player_thorn_lows[p.id - 1] += so.se.thorn_damage_low
+                self.player_thorn_highs[p.id - 1] += so.se.thorn_damage_high
+
+    def __blitModifiers__(self):
+
+        # blit 'em!
+        for p in (self.p1, self.p2):
+            i = p.id - 1
+            x_mod = 959
+            x2_mod = 965
+            self.gui.__blitText__(f"AIM BOOST: {self.player_aim_mods[i]}", 20, 191 + x_mod * i, 195, self.gui.colors.WHITE)
+            self.gui.__blitText__(f"DEF BOOST: {self.player_def_mods[i]}", 20, 191 + x_mod * i, 225, self.gui.colors.WHITE)
+            self.gui.__blitText__(f"THORN LOW: {self.player_thorn_lows[i]}", 20, 771 + x_mod * i, 195, self.gui.colors.WHITE)
+            self.gui.__blitText__(f"THORN HIGH: {self.player_thorn_highs[i]}", 20, 771 + x_mod * i, 225, self.gui.colors.WHITE)
+            self.gui.__blitText__(f"BASE DEFENSE OF {p.ac.c.defense}", 20, 477 + x2_mod * i, 247, self.gui.colors.WHITE)
+
+
+
+
+
+
+
+
+

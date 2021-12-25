@@ -39,8 +39,19 @@ for i in range(0, num_of_creatures):
 # health kit / change creature multiplier
 for i in range(0, num_of_creatures):
     for j in range(0, num_of_creatures):
-        cr_mo_op_multiplier[i][5][j] = 1.5
+        cr_mo_op_multiplier[i][5][j] = 1
 
+# fragonire against psawarca and vice versa
+cr_mo_op_multiplier[0][5][2] = 1.5
+cr_mo_op_multiplier[2][5][0] = 0.5
+
+# psawarca against schonips and vice versa
+cr_mo_op_multiplier[2][5][1] = 1.5
+cr_mo_op_multiplier[1][5][2] = 0.5
+
+# shigowi against psawarca and vice versa
+cr_mo_op_multiplier[2][5][1] = 1.3
+cr_mo_op_multiplier[1][5][2] = 0.7
 
 # score status deadliness against opponent
 # faster = 0.5 means proc might or might not be before opponent's turn
@@ -108,16 +119,17 @@ def score_se(se: cr.StatusEffect, faster: float = 0.5,
     return score
 
 # check if extinguishing score applies
-def score_extinguish(ai: cr.CreatureOccurrence, move_type: cr.Type) -> float:
+def score_extinguish(ai: cr.CreatureOccurrence, move: cr.Move) -> float:
     score = 0
     so: cr.StatusOccurrence
     for so in ai.active_statuses:
-        if ai.__checkTypesWeakness__(so.se.type, move_type):
-            # I assume design where you cannot extinguish a good status
-            # from yourself and a bad one from the opponent\
-            # for now I won't delve deeper into how to score each extinguishes
-            # status, 20 flat points is ok
-            score += 20
+        if ai.__checkTypesWeakness__(so.se.type, move.type):
+            if move.target_self: # if it's a good status, this will be negative score
+                score += so.se.extinguish_scoring * so.status_d
+                score += 30 * so.stun_d
+            else: # double negative makes positive, so if it's a positive opponent status, this will be positive score
+                score -= so.se.extinguish_scoring * so.status_d
+                score -= 30 * so.stun_d
     return score
 
 def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
@@ -166,7 +178,7 @@ def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
             damage_score = 5 * damage * damage_worth
 
             # add extinguishing score to damage_score
-            damage_score += score_extinguish(ai, move_ai.type)
+            damage_score += score_extinguish(ai, move_ai)
 
             # there is a status effect to the move
             if move_ai.status_effect is not None:
@@ -239,7 +251,7 @@ def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
             damage_score *= 10 * damage_worth
 
             # add extinguishing score to damage_score
-            damage_score += score_extinguish(opponent, move_ai.type)
+            damage_score += score_extinguish(opponent, move_ai)
 
             # calculate and normalize retaliation/leech
             thorn_damage = 10 * (thorn_mod_low + thorn_mod_high) / 2
@@ -290,7 +302,7 @@ class Player:
 
         if counter_mode != "": # if an assumption was made at all
 
-            text = ["", "", ""]
+            text = ["", "", "", ""]
 
             if counter_mode == "c":
                 text[0] = f"PLAYER {self.id} THOUGHT IT'S OPPONENT WILL MAKE"
@@ -302,7 +314,8 @@ class Player:
             print(f"pre-round raf and baf for {self.ac.c.name} "
                   f"{self.risk_aversion_factor} {self.assume_blunder_factor}")
             if op_assumed == op_roll: # it was correct
-                text[2] = f"PLAYER {self.id} WAS RIGHT! BEHAVIOUR REINFORCED!"
+                text[2] = f"PLAYER {self.id} WAS RIGHT!"
+                text[3] = "BEHAVIOUR REINFORCED!"
 
                 if counter_mode == "c": # aversion subsides
                     self.risk_aversion_factor -= 0.1
@@ -313,7 +326,8 @@ class Player:
                     if self.assume_blunder_factor > 0.8:
                         self.assume_blunder_factor = 0.8
             elif op_assumed != -1: # it was incorrect
-                text[2] = f"PLAYER {self.id} WAS WRONG! BEHAVIOUR PUNISHED!"
+                text[2] = f"PLAYER {self.id} WAS WRONG!"
+                text[3] = "BEHAVIOUR PUNISHED!"
 
                 if counter_mode == "c": # aversion increases doubly
                     self.risk_aversion_factor += 0.2
@@ -329,7 +343,7 @@ class Player:
             if self.ac.bs is not None:
                 self.ac.bs.__animateTextbox__(True)
                 self.ac.bs.__blitBattleText__(text[0], text[1])
-                self.ac.bs.__blitBattleText__(text[2])
+                self.ac.bs.__blitBattleText__(text[2], text[3])
                 self.ac.bs.__animateTextbox__(False)
 
     # returns move index and assumed opponent move if risking, else -1, and a string code "" "c" or "cc"

@@ -2,7 +2,7 @@ import random
 import pygame
 
 import scripts.player as pl
-import scripts.creatures as sc
+import scripts.creatures as cr
 import scripts.gui as g
 
 
@@ -18,7 +18,7 @@ class Battle:
 
         print("\nPlayer 1: choose your creature")
         i = 1
-        c: sc.CreatureOccurrence
+        c: cr.CreatureOccurrence
         for c in self.p1.creatures:
             print(f"{i}. {c.c.name}")
         self.p1.ac = self.p1.creatures.__getitem__(0)
@@ -28,7 +28,7 @@ class Battle:
 
         print("\nPlayer 2: choose your creature")
         i = 1
-        c: sc.CreatureOccurrence
+        c: cr.CreatureOccurrence
         for c in self.p2.creatures:
             print(f"{i}. {c.c.name}")
         self.p2.ac = self.p2.creatures.__getitem__(1)
@@ -44,6 +44,10 @@ class Battle:
         p2_move_count = [0, 0, 0, 0, 0, 0]
 
         while self.p1.ac.health > 0 and self.p2.ac.health > 0:
+
+            # clear moves
+            p1_move_roll, p2_assumed, p2_assumed_mode = -1, -1, ""
+            p2_move_roll, p1_assumed, p1_assumed_mode = -1, -1, ""
 
             self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
             self.bs.__blitHealth__()
@@ -63,19 +67,41 @@ class Battle:
             self.p1.ac.__tickCooldowns__()
             self.p2.ac.__tickCooldowns__()
 
-            g.__delay__(1000 / self.speed)
+            g.__delay__(3000 / self.speed)
 
-            # roll the moves for testing
-            if not self.p1.ac.isStunned:
-                p1_move_roll, p2_assumed, p2_assumed_mode = self.p1.__calculateMove__(self.p2.ac)
-            else:
-                p1_move_roll, p2_assumed, p2_assumed_mode = -1, -1, ""
-            if not self.p2.ac.isStunned:
-                p2_move_roll, p1_assumed, p1_assumed_mode = self.p2.__calculateMove__(self.p1.ac)
-            else:
-                p2_move_roll, p1_assumed, p1_assumed_mode = -1, -1, ""
-            print(f"{self.p1.ac.c.name} rolled {p1_move_roll}, cooldown: {self.p1.ac.cooldowns[p1_move_roll]}")
-            print(f"{self.p2.ac.c.name} rolled {p2_move_roll}, cooldown: {self.p2.ac.cooldowns[p2_move_roll]}")
+            # special colors and behaviour for stunned
+            if self.p1.ac.isStunned:
+                p1_move_roll = -2
+            if self.p2.ac.isStunned:
+                p2_move_roll = -2
+
+            # pre-turn phase: get moves
+            while p1_move_roll == -1 or p2_move_roll == -1:
+                self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
+                self.bs.__blitHealth__()
+                self.bs.__blitModifiers__()
+                self.bs.__blitReadiness__(p1_move_roll, p2_move_roll)
+                self.bs.__blitHUD__()
+                self.bs.gui.__blitScreen__()
+
+                if p1_move_roll == -1 and self.p1.ai >= 0:
+                    p1_move_roll, p2_assumed, p2_assumed_mode = self.p1.__calculateMove__(self.p2.ac)
+                    print(f"{self.p1.ac.c.name} rolled {p1_move_roll}, cooldown: {self.p1.ac.cooldowns[p1_move_roll]}")
+
+                if p2_move_roll == -1 and self.p2.ai >= 0:
+                    p2_move_roll, p1_assumed, p1_assumed_mode = self.p2.__calculateMove__(self.p1.ac)
+                    print(f"{self.p2.ac.c.name} rolled {p2_move_roll}, cooldown: {self.p2.ac.cooldowns[p2_move_roll]}")
+
+                p1_move_roll, p2_move_roll = self.bs.__updateMoves__(p1_move_roll, p2_move_roll)
+
+            self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
+            self.bs.__blitHealth__()
+            self.bs.__blitModifiers__()
+            self.bs.__blitReadiness__(p1_move_roll, p2_move_roll)
+            self.bs.__blitHUD__()
+            self.bs.gui.__blitScreen__()
+
+            g.__delay__(3000 / self.bs.speed)
 
             print(f"\n(SOT) Player 1 health: {self.p1.ac.health}\n      Player 2 health: {self.p2.ac.health}")
 
@@ -118,9 +144,11 @@ class Battle:
                 self.bs.__blitHUD__()
                 self.bs.gui.__blitScreen__()
 
+                self.bs.active_player = 1
                 self.bs.__animateTextbox__(True)
                 self.bs.__blitBattleText__(f"{self.p1.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
                 self.bs.__animateTextbox__(False)
+                self.bs.active_player = -1
 
                 print("Player 1 is stunned and skips the turn!")
 
@@ -132,9 +160,11 @@ class Battle:
                 self.bs.__blitHUD__()
                 self.bs.gui.__blitScreen__()
 
+                self.bs.active_player = 2
                 self.bs.__animateTextbox__(True)
                 self.bs.__blitBattleText__(f"{self.p2.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
                 self.bs.__animateTextbox__(False)
+                self.bs.active_player = -1
 
                 print("Player 2 is stunned and skips the turn!")
 
@@ -163,7 +193,7 @@ class Battle:
                 self.bs.active_player = 1
 
                 self.p1.ac.__checkIfStunned__()
-                if self.p1.ac.isStunned:  # could be stunned if moves second
+                if self.p1.ac.isStunned and moves_second == 1:  # could be stunned if moves second
                     print("Player 1 is stunned out of his move and skips the turn!")
 
                     self.bs.__animateTextbox__(True)
