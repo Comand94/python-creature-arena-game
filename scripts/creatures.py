@@ -613,7 +613,7 @@ all_status_effects = {
                      status_duration=0, stun_duration=-1,
                      thorn_damage_low=4, thorn_damage_high=8, extinguish_scoring=0),
     "TRIPPED":
-        StatusEffect(name="TRIPPED", type=all_types["PHYSICAL"], damage_low=0, damage_high=4,
+        StatusEffect(name="TRIPPED", type=all_types["WIND"], damage_low=0, damage_high=4,
                      aim_mod=0, defense_mod=0, damage_mod=0, damage_mod_type=None,
                      status_duration=0, stun_duration=0,
                      thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=0),
@@ -810,4 +810,3 @@ all_creatures = {
                  move3=all_moves["STARVE OPPONENT"], move4=all_moves["BLINDING LIGHT"], move5=all_moves["MAGICAL REINFORCEMENT"],
                  types=(all_types["VAMPIRIC"], all_types["MAGIC"], all_types["PHYSICAL"]))
 }
-

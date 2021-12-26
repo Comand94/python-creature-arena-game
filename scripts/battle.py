@@ -92,7 +92,7 @@ class Battle:
                     p2_move_roll, p1_assumed, p1_assumed_mode = self.p2.__calculateMove__(self.p1.ac)
                     print(f"{self.p2.ac.c.name} rolled {p2_move_roll}, cooldown: {self.p2.ac.cooldowns[p2_move_roll]}")
 
-                p1_move_roll, p2_move_roll = self.bs.__updateMoves__(p1_move_roll, p2_move_roll)
+                p1_move_roll, p2_move_roll = self.bs.__updateInput__([p1_move_roll, p2_move_roll])
 
             self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
             self.bs.__blitHealth__()
