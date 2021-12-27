@@ -1,3 +1,4 @@
+import math
 import random
 import sys
 
@@ -8,14 +9,6 @@ import scripts.creatures as cr
 # import scripts.battle as sb #imported through BattleScene constructor
 import scripts.player as pl
 import scripts.spritesheet as ss
-
-
-# delay a certain amount of milliseconds
-def __delay__(time: float):
-    before = now = pygame.time.get_ticks()
-    while now <= before + time:
-        now = pygame.time.get_ticks()
-
 
 # some color presets
 class Color:
@@ -74,8 +67,17 @@ class GUI:
         self.font_path = os.path.join(dirname, '../assets/art/fonts/GOODTIME.ttf')
         self.colors = Color()
         self.keys = Keys()
+        self.speed = 2
+        self.clock = pygame.time.Clock()
 
         self.main_menu = self.current_scene = MainMenu(self)
+
+    # delay a certain amount of milliseconds
+    def __delay__(self, time: int):
+        time = time / self.speed
+        before = now = self.clock.tick(0)
+        while now <= before + time:
+            now += self.clock.tick(0)
 
     # draw text centered around x and y coordinates
     def __blitText__(self, text: str, size: int, x: float, y: float, color: tuple[int, int, int]):
@@ -179,13 +181,13 @@ class MainMenu(Scene):
                 if self.selected_y == 0:  # start a new battle
 
                     player1_creatures = player2_creatures = \
-                        (cr.CreatureOccurrence(cr.all_creatures["PSAWARCA"]),
-                         cr.CreatureOccurrence(cr.all_creatures["BAMAT"]))
-                    player1 = pl.Player(1, player1_creatures, -1)
-                    player2 = pl.Player(2, player2_creatures, -1)
+                        (cr.CreatureOccurrence(cr.all_creatures["BAMAT"]),
+                         cr.CreatureOccurrence(cr.all_creatures["SCHONIPS"]))
+                    player1 = pl.Player(1, player1_creatures, 3)
+                    player2 = pl.Player(2, player2_creatures, 3)
 
                     self.run_display = False
-                    battle_scene = BattleScene(self.gui, player1, player2, 2)
+                    battle_scene = BattleScene(self.gui, player1, player2)
                     battle_scene.run_display = True
                     self.gui.current_scene = battle_scene
 
@@ -214,14 +216,13 @@ class MainMenu(Scene):
 
 
 class BattleScene(Scene):
-    def __init__(self, gui: GUI, p1: pl.Player, p2: pl.Player, speed: float = 1):
+    def __init__(self, gui: GUI, p1: pl.Player, p2: pl.Player):
         Scene.__init__(self, gui)
         self.color_health = gui.colors.RED
         self.p1 = p1
         self.p2 = p2
-        self.speed = speed
         self.textbox_up = False
-        self.player_button_tips = [["Q", "W", "E", "A", "S", "D", "TAB"], ["4", "5", "6", "1", "2", "3", " + "]]
+        self.player_button_tips = [["Q", "W", "E", "A", "S", "D", "TAB"], ["4", "5", "6", "1", "2", "3", "PLUS"]]
         self.active_player = -1
         self.last_battle_text = ["", None]
         self.player_aim_mods = [0, 0]
@@ -246,9 +247,9 @@ class BattleScene(Scene):
         hud_path = os.path.join(self.dirname, f'../assets/art/interface/p2_hud.png')
         self.player_hud.append(pygame.image.load(hud_path))
 
-        # abilities
-        self.p1_abilities = []
-        self.p2_abilities = []
+        # abilities and active statuses
+        self.player_abilities = [[], []]
+        self.player_active_statuses = [[], []]
 
         # get animated textbox
         textbox_sprite_path = os.path.join(self.dirname, f'../assets/art/interface/textbox_battle_sprite.png')
@@ -265,8 +266,15 @@ class BattleScene(Scene):
         infobox_path = os.path.join(self.dirname, f'../assets/art/interface/p2_infobox.png')
         self.player_infobox.append(pygame.image.load(infobox_path))
 
+        # get infobox selected ability and status
+        self.selected = []
+        selected_path = os.path.join(self.dirname, f'../assets/art/interface/selected_ability.png')
+        self.selected.append(pygame.image.load(selected_path))
+        selected_path = os.path.join(self.dirname, f'../assets/art/interface/selected_status.png')
+        self.selected.append(pygame.image.load(selected_path))
+
         import scripts.battle as sb
-        self.battle = sb.Battle(self, p1, p2, speed)
+        self.battle = sb.Battle(self, p1, p2)
 
     def __updateInput__(self, player_curr_moves: [int, int]) -> (int, int):
 
@@ -306,6 +314,13 @@ class BattleScene(Scene):
                         self.player_selected_z[i] = (self.player_selected_z[i] + 1) % self.player_max_z
                     if k == self.gui.keys.W[i]:
                         self.player_selected_y[i] = (self.player_selected_y[i] - 1) % self.player_max_y
+                        if self.player_selected_x[i] >= 2 and self.player_selected_y[i] == 2:
+                            self.player_selected_x[i] -= 1
+                        if self.player_selected_x[i] >= 4 and self.player_selected_y[i] == 2:
+                            self.player_selected_x[i] -= 1
+                        if self.player_selected_x[i] >= 2 and self.player_selected_y[i] == 7:
+                            self.player_selected_x[i] += 1
+                        # safety check
                         if self.player_selected_x[i] >= 4 and self.player_selected_y[i] <= 2:
                             self.player_selected_x[i] = 3
                     if k == self.gui.keys.E[i]:
@@ -316,6 +331,13 @@ class BattleScene(Scene):
                             self.player_selected_x[i] = 3
                     if k == self.gui.keys.S[i]:
                         self.player_selected_y[i] = (self.player_selected_y[i] + 1) % self.player_max_y
+                        if self.player_selected_x[i] >= 2 and self.player_selected_y[i] == 0:
+                            self.player_selected_x[i] -= 1
+                        if self.player_selected_x[i] >= 4 and self.player_selected_y[i] == 0:
+                            self.player_selected_x[i] -= 1
+                        if self.player_selected_x[i] >= 2 and self.player_selected_y[i] == 3:
+                            self.player_selected_x[i] += 1
+                        # safety check
                         if self.player_selected_x[i] >= 4 and self.player_selected_y[i] <= 2:
                             self.player_selected_x[i] = 3
                     if k == self.gui.keys.D[i]:
@@ -334,27 +356,81 @@ class BattleScene(Scene):
         self.gui.main_menu.run_display = True
         self.gui.current_scene = self.gui.main_menu
 
-    def __changeHUD__(self):
+    def __updateStatusImages__(self):
+        for p in (self.p1, self.p2):
+            i = p.id - 1
+            self.player_active_statuses[i].clear()
 
-        # creature specific
-        self.p1_abilities.clear()
-        for i in range(0, 5):
-            path = os.path.join(self.dirname, f'../assets/art/interface/abilities/{self.p1.ac.c.name}/{i}.png')
-            image = pygame.image.load(path)
-            self.p1_abilities.append(image)
+            for so in p.ac.active_statuses:
+                path = os.path.join(self.dirname, f'../assets/art/interface/statuses/{so.se.name}.png')
+                image = pygame.image.load(path)
+                self.player_active_statuses[i].append(image)
 
-        self.p2_abilities.clear()
-        for i in range(0, 5):
-            path = os.path.join(self.dirname, f'../assets/art/interface/abilities/{self.p2.ac.c.name}/{i}.png')
-            image = pygame.image.load(path)
-            self.p2_abilities.append(image)
+    def __updateAbilityImages__(self):
 
-        # universal
-        for i in range(5, 7):
-            path = os.path.join(self.dirname, f'../assets/art/interface/abilities/universal/{i}.png')
+        # creature specific - do one player after another
+        for p in (self.p1, self.p2):
+            i = p.id - 1
+            self.player_abilities[i].clear()
+
+            for j in range(0, 5):
+                path = os.path.join(self.dirname, f'../assets/art/interface/abilities/{p.ac.c.name}/{j}.png')
+                image = pygame.image.load(path)
+                self.player_abilities[i].append(image)
+
+        # universal - don't open the same images twice!
+        for j in range(5, 7):
+            path = os.path.join(self.dirname, f'../assets/art/interface/abilities/universal/{j}.png')
             image = pygame.image.load(path)
-            self.p1_abilities.append(image)
-            self.p2_abilities.append(image)
+            self.player_abilities[0].append(image)
+            self.player_abilities[1].append(image)
+
+    def __blitInfoboxImages__(self, player: pl.Player):
+        res_mp = self.gui.DISPLAY_W / 1920
+
+        p_id = player.id - 1
+        o_id = player.id % 2
+
+        if p_id == 0:
+            opponent = self.p2
+        else:
+            opponent = self.p1
+
+        if self.player_infobox_up[p_id]:
+            for ability in range(0, 6):
+                # player moves
+                x = ability % 2
+                y = math.floor(ability / 2)
+                move = pygame.transform.scale(self.player_abilities[p_id][ability], (69 * res_mp, 32 * res_mp))
+                rect = move.get_rect()
+                rect = rect.move(((57 + 103 * x + 1408 * p_id) * res_mp, (342 + 50 * y) * res_mp))
+                self.gui.display.blit(move, rect)
+
+                # opponent moves
+                x = (ability % 2) + 2
+                move = pygame.transform.scale(self.player_abilities[o_id][ability], (69 * res_mp, 32 * res_mp))
+                rect = move.get_rect()
+                rect = rect.move(((79 + 103 * x + 1408 * p_id) * res_mp, (342 + 50 * y) * res_mp))
+                self.gui.display.blit(move, rect)
+
+            for p in (player, opponent):
+                i = 0
+
+                player_index = p.id - 1
+                if p == player:
+                    base_x = 46
+                else:
+                    base_x = 274
+                for status_image in self.player_active_statuses[player_index]:
+                    x = i % 3
+                    y = math.floor(i / 3)
+                    status = pygame.transform.scale(status_image, (54 * res_mp, 15 * res_mp))
+                    rect = status.get_rect()
+                    rect = rect.move(((base_x + 71 * x + 1408 * p_id) * res_mp, (555 + 28 * y) * res_mp))
+                    self.gui.display.blit(status, rect)
+                    i += 1
+                    if i >= 15: # if someone's somehow got more than 15 active effects, don't draw them
+                        break
 
     def __animateTextbox__(self, zoom_in: bool = True):
         res_mp = self.gui.DISPLAY_W / 1920
@@ -376,7 +452,7 @@ class BattleScene(Scene):
             self.gui.display.fill(self.gui.colors.GRAY)
             self.__blitHealth__()
             self.__blitHUD__()
-            __delay__(10 / self.speed)
+            self.gui.__delay__(10)
 
             textbox = pygame.transform.scale(self.textbox_image[i], (1460 * res_mp, 140 * res_mp))
             rect = self.textbox_image[i].get_rect()
@@ -386,7 +462,7 @@ class BattleScene(Scene):
             i = y(i)
 
         if not zoom_in:
-            __delay__(10 / self.speed)
+            self.gui.__delay__(10)
             self.gui.display.fill(self.gui.colors.GRAY)
             self.__blitHealth__()
             self.__blitHUD__()
@@ -394,7 +470,7 @@ class BattleScene(Scene):
         else:
             self.textbox_up = True
 
-        __delay__(100 / self.speed)
+        self.gui.__delay__(100)
 
     def __blitTextbox__(self):
         res_mp = self.gui.DISPLAY_W / 1920
@@ -425,11 +501,11 @@ class BattleScene(Scene):
             self.gui.__blitText__(message, font_size, 960, y, self.gui.colors.BLACK)
             self.gui.__blitScreen__()
             if c == '!' or c == '?':
-                __delay__(500 / self.speed)  # 500ms delay with ! or ?
+                self.gui.__delay__(500)  # 500ms delay with ! or ?
             elif c == '.':
-                __delay__(200 / self.speed)  # 500ms delay with .
+                self.gui.__delay__(200)  # 200ms delay with .
             else:
-                __delay__(15 / self.speed)  # 15ms delay with letter
+                self.gui.__delay__(12)  # 15ms delay with letter
         self.last_battle_text[0] = message
 
         if line2 is not None:
@@ -444,15 +520,15 @@ class BattleScene(Scene):
                 self.gui.__blitText__(message, font_size, 960, y + 60, self.gui.colors.BLACK)
                 self.gui.__blitScreen__()
                 if c == '!' or c == '?':
-                    __delay__(500 / self.speed)  # 500ms delay with ! or ?
+                    self.gui.__delay__(500)  # 500ms delay with ! or ?
                 elif c == '.':
-                    __delay__(200 / self.speed)  # 500ms delay with .
+                    self.gui.__delay__(200)  # 200ms delay with .
                 else:
-                    __delay__(15 / self.speed)  # 15ms delay with letter
+                    self.gui.__delay__(12)  # 12ms delay with letter
             self.last_battle_text[1] = message
 
         # 500ms delay at the end of the message
-        __delay__(500 / self.speed)
+        self.gui.__delay__(500)
 
     def __blitHealth__(self):
         # resolution scaling multiplier
@@ -474,7 +550,6 @@ class BattleScene(Scene):
         self.gui.__blitText__(health_text, 45, 1440, 210, self.gui.colors.WHITE)
 
     def __animateHealth__(self, ac: cr.CreatureOccurrence, prev_health: int):
-
         # resolution scaling multiplier
         res_mp = self.gui.DISPLAY_W / 1920
 
@@ -552,8 +627,8 @@ class BattleScene(Scene):
             # blit screen
             self.gui.__blitScreen__()
 
-            __delay__(15 / self.speed)
-        __delay__(500 / self.speed)
+            self.gui.__delay__(15)
+        self.gui.__delay__(500)
 
     def __blitHUD__(self):
         # resolution scaling multiplier
@@ -585,19 +660,20 @@ class BattleScene(Scene):
                     j = 0
                     k = i
 
-                # get image and base x coordinate
+                # get base x coordinate
                 if p == 1:
                     base_x = 147
-                    ability = pygame.transform.scale(self.p1_abilities[i], (138 * res_mp, 64 * res_mp))
                 else:
                     base_x = 1155
-                    ability = pygame.transform.scale(self.p2_abilities[i], (138 * res_mp, 64 * res_mp))
+
+                # get image
+                ability = pygame.transform.scale(self.player_abilities[p - 1][i], (138 * res_mp, 64 * res_mp))
 
                 # blit ability
                 rect = ability.get_rect()
                 rect = rect.move(((base_x + 242 * k) * res_mp, (875 + 90 * j) * res_mp))
                 self.gui.display.blit(ability, rect)
-            ability = pygame.transform.scale(self.p1_abilities[6], (71 * res_mp, 64 * res_mp))
+            ability = pygame.transform.scale(self.player_abilities[p - 1][6], (71 * res_mp, 64 * res_mp))
             rect = ability.get_rect()
             rect = rect.move(((813 + 227 * (p - 1)) * res_mp, 965 * res_mp))
             self.gui.display.blit(ability, rect)
@@ -609,7 +685,8 @@ class BattleScene(Scene):
             rect = rect.move((0, 0))
             self.gui.display.blit(hud, rect)
 
-        # infobox black background, infobox itself, infobox text and infobox selected text
+        # infobox black background, infobox images, infobox itself, \
+        # infobox text, infobox selected text and infobox selected ability/status window
         for p in (self.p1, self.p2):
 
             i = p.id - 1
@@ -618,11 +695,20 @@ class BattleScene(Scene):
             else:
                 opponent = self.p1
 
+            x = self.player_selected_x[i]
+            y = self.player_selected_y[i]
+            z = self.player_selected_z[i]
+
             if self.player_infobox_up[i]:
 
+                # blit infobox black background
                 p_infobox_background = pygame.Rect((res_mp * (33 + 949 * i), res_mp * 282, res_mp * 905, res_mp * 568))
                 self.gui.display.fill(self.gui.colors.BLACK, p_infobox_background)
 
+                # blit images of abilities and statuses
+                self.__blitInfoboxImages__(p)
+
+                # blit infobox
                 infobox = pygame.transform.scale(self.player_infobox[i], (self.gui.DISPLAY_W, self.gui.DISPLAY_H))
                 rect = infobox.get_rect()
                 rect = rect.move((0, 0))
@@ -641,14 +727,22 @@ class BattleScene(Scene):
                 self.gui.__blitText__("ACTIVE", 20, 370 + x_mod, 515, self.gui.colors.RED)
                 self.gui.__blitText__("EFFECTS", 20, 370 + x_mod, 535, self.gui.colors.RED)
 
-                if self.player_selected_y[i] <= 2:  # selected ability
+                if y <= 2:  # selected ability
+
                     self.gui.__blitText__("SELECTED MOVE:", 20, 713 + x_mod2, 300, self.gui.colors.RED)
-                    if self.player_selected_x[i] <= 1:  # own ability
-                        move_index = self.player_selected_y[i] * 2 + self.player_selected_x[i]
+                    if x <= 1:  # own ability
+                        move_index = y * 2 + x
                         move = p.ac.c.moves[move_index]
+                        base_x = 49
                     else:
-                        move_index = self.player_selected_y[i] * 2 + self.player_selected_x[i] - 2
+                        move_index = y * 2 + x - 2
                         move = opponent.ac.c.moves[move_index]
+                        base_x = 71
+
+                    selected = pygame.transform.scale(self.selected[0], (85 * res_mp, 46 * res_mp))
+                    rect = selected.get_rect()
+                    rect = rect.move(((base_x + 103 * x + 1408 * i) * res_mp, (335 + 50 * y) * res_mp))
+                    self.gui.display.blit(selected, rect)
 
                     # blit move
                     self.gui.__blitText__(f"{move.name}", 20, 713 + x_mod2, 320, self.gui.colors.RED)
@@ -710,18 +804,26 @@ class BattleScene(Scene):
                         self.gui.__blitText__("--------", 20, 713 + x_mod2, 583, self.gui.colors.RED)
 
                 else:  # selected status or empty
-                    if self.player_selected_x[i] <= 2:  # own status
-                        status_index = (self.player_selected_y[i] - 3) * 3 + self.player_selected_x[i]
-                        if status_index < p.ac.active_statuses.__len__() - 1:
+
+                    if x <= 2:  # own status
+                        status_index = (y - 3) * 3 + x
+                        base_x = 40
+                        if status_index < p.ac.active_statuses.__len__():
                             so = p.ac.active_statuses[status_index]
                         else:
                             so = None
                     else:
-                        status_index = (self.player_selected_y[i] - 3) * 3 + self.player_selected_x[i] - 2
-                        if status_index < opponent.ac.active_statuses.__len__() - 1:
+                        status_index = (y - 3) * 3 + x - 3
+                        base_x = 55
+                        if status_index < opponent.ac.active_statuses.__len__():
                             so = opponent.ac.active_statuses[status_index]
                         else:
                             so = None
+
+                    selected = pygame.transform.scale(self.selected[1], (65 * res_mp, 26 * res_mp))
+                    rect = selected.get_rect()
+                    rect = rect.move(((base_x + 71 * x + 1408 * i) * res_mp, (465 + 28 * y) * res_mp))
+                    self.gui.display.blit(selected, rect)
 
                     if so is None:
                         self.gui.__blitText__("--------", 20, 713 + x_mod2, 583, self.gui.colors.RED)
@@ -810,12 +912,25 @@ class BattleScene(Scene):
                 # get the text on the board!
                 self.gui.__blitText__(text, 45, x + j * 242, y, color)
 
+            if p.ai < 0 and not self.player_infobox_up[p.id - 1]:
+                self.gui.__blitText__(self.player_button_tips[p.id - 1][6], 27, 847 + 227 * (p.id - 1), 890, self.gui.colors.BLACK)
+                self.gui.__blitText__("(INFO)", 27, 847 + 227 * (p.id - 1), 921, self.gui.colors.BLACK)
+
+            elif self.player_infobox_up[p.id - 1]:
+                # w
+                self.gui.__blitText__(self.player_button_tips[p.id - 1][1], 20, 323 + 1278 * (p.id - 1), 736, self.gui.colors.BLACK)
+                # asd
+                text_asd = self.player_button_tips[p.id - 1][3] + self.player_button_tips[p.id - 1][4] + self.player_button_tips[p.id - 1][5]
+                self.gui.__blitText__(text_asd, 20, 323 + 1278 * (p.id - 1), 759, self.gui.colors.BLACK)
+                # tab
+                self.gui.__blitText__(self.player_button_tips[p.id - 1][6], 20, 145 + 1630 * (p.id - 1), 747, self.gui.colors.BLACK)
+
     def __animateRoll__(self, roll: int, chance: int, for_status: bool = False):
         # only animate when chances are uncertain
-        if chance < 100:
+        if 0 < chance < 100:
 
             # text 3 is just number = delay multiplier and x = terminate
-            text = ["", "", "00000000000000000000000000000011226699x", ""]
+            text = ["", "", "000000000000000000000000000011226699x", ""]
             if for_status:
                 text[0] = "ROLLING FOR STATUS"
             else:
@@ -831,7 +946,7 @@ class BattleScene(Scene):
 
             for i in range(0, 4):
                 message = ''
-                __delay__(200 / self.speed)  # 200ms delay between lines
+                self.gui.__delay__(200)  # 200ms delay between lines
                 for c in text[i]:
                     message += c
                     self.gui.display.fill(self.gui.colors.GRAY)
@@ -857,10 +972,10 @@ class BattleScene(Scene):
                     elif i == 2:  # 3rd line - random number rolling
                         if c == 'x':  # do the correct number, this is the last iteration
                             number = "-- " + str(roll) + " --"
-                            __delay__(30 * 9 / self.speed)
+                            self.gui.__delay__(30 * 9)
                         else:  # random number for SUSPENSE!
                             number = "-- " + str(random.randrange(0, 100)) + " --"
-                            __delay__(30 * float(c) / self.speed)
+                            self.gui.__delay__(30 * int(c))
                         self.gui.__blitText__(number, 30, 960, 280, self.gui.colors.WHITE)
 
                     else:  # 5th line - draw out success message
@@ -868,13 +983,13 @@ class BattleScene(Scene):
 
                     self.gui.__blitScreen__()
                     if c == '!' or c == '?':
-                        __delay__(500 / self.speed)  # 500ms delay with ! or ?
+                        self.gui.__delay__(500)  # 500ms delay with ! or ?
                     elif c == '.':
-                        __delay__(200 / self.speed)  # 500ms delay with .
+                        self.gui.__delay__(200)  # 200ms delay with .
                     else:
-                        __delay__(15 / self.speed)  # 15ms delay with letter
+                        self.gui.__delay__(12)  # 12ms delay with letter
 
-            __delay__(500 / self.speed)  # 500ms delay
+            self.gui.__delay__(500)  # 500ms delay
 
     def __animateMovePriority__(self, p1_move_speed: int, p2_move_speed: int, moves_first: int):
         text = ["WHO MOVES FIRST?", f"{p1_move_speed}-SPEED VS {p2_move_speed}-SPEED", "", ""]
@@ -893,7 +1008,7 @@ class BattleScene(Scene):
 
         for i in range(0, 4):
             message = ''
-            __delay__(200 / self.speed)  # 200ms delay between lines
+            self.gui.__delay__(200)  # 200ms delay between lines
             for c in text[i]:
                 message += c
                 self.gui.display.fill(self.gui.colors.GRAY)
@@ -922,16 +1037,15 @@ class BattleScene(Scene):
 
                 self.gui.__blitScreen__()
                 if c == '!' or c == '?':
-                    __delay__(500 / self.speed)  # 500ms delay with ! or ?
+                    self.gui.__delay__(500)  # 500ms delay with ! or ?
                 elif c == '.':
-                    __delay__(200 / self.speed)  # 500ms delay with .
+                    self.gui.__delay__(200)  # 200ms delay with .
                 else:
-                    __delay__(15 / self.speed)  # 15ms delay with letter
+                    self.gui.__delay__(12)  # 12ms delay with letter
 
-        __delay__(500 / self.speed)  # 500ms delay
+        self.gui.__delay__(500)  # 500ms delay
 
     def __blitReadiness__(self, p1_move_roll: int, p2_move_roll: int):
-
         # resolution scaling multiplier
         res_mp = self.gui.DISPLAY_W / 1920
 
@@ -977,7 +1091,6 @@ class BattleScene(Scene):
                 self.player_thorn_highs[p.id - 1] += so.se.thorn_damage_high
 
     def __blitModifiers__(self):
-
         # blit 'em!
         for p in (self.p1, self.p2):
             i = p.id - 1
@@ -991,4 +1104,4 @@ class BattleScene(Scene):
                                   self.gui.colors.WHITE)
             self.gui.__blitText__(f"THORN HIGH: {self.player_thorn_highs[i]}", 20, 771 + x_mod * i, 225,
                                   self.gui.colors.WHITE)
-            self.gui.__blitText__(f"BASE DEFENSE OF {p.ac.c.defense}", 20, 477 + x2_mod * i, 255, self.gui.colors.WHITE)
+            self.gui.__blitText__(f"BASE DEFENSE OF {p.ac.c.defense}", 20, 477 + x2_mod * i, 250, self.gui.colors.WHITE)

@@ -167,8 +167,8 @@ def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
         # SELF-TARGETTING PLAYER MOVE
         if move_ai.target_self and is_not_stunned:
 
-            damage_worth = 80 / ai.c.health
-            thorn_damage_worth = 80 / opponent.c.health
+            damage_worth = 60 / ai.c.health
+            thorn_damage_worth = 60 / opponent.c.health
 
             # normalized damage score
             damage = -(move_ai.damage_low + move_ai.damage_high) * move_ai.hit_attempts
@@ -205,8 +205,8 @@ def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
         # ATTACKING MOVE
         elif is_not_stunned:
 
-            damage_worth = 80 / opponent.c.health
-            thorn_damage_worth = 80 / ai.c.health
+            damage_worth = 60 / opponent.c.health
+            thorn_damage_worth = 60 / ai.c.health
 
             aim_mod = 0
             damage_mod = 0
@@ -227,8 +227,10 @@ def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
                 thorn_mod_high += so.se.thorn_damage_high
 
             hit_chance = move_ai.aim + aim_mod - opponent.c.defense - defense_mod
-            if hit_chance > 100:
-                hit_chance = 100
+            if hit_chance > 110:
+                hit_chance = 110
+            if hit_chance < 0: # fix for double negative
+                hit_chance = 0
             damage_mp = opponent.__checkTypeRelationship__(move_ai.type)
 
             # damage mod gives extra incentive to use that move before the status expires
@@ -241,9 +243,10 @@ def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
             if damage < 0:
                 damage = 0
 
-            # if damage will likely instantly kill opponent, add extra score - this is likely no time to heal yourself
             damage_score = \
                 damage * (hit_chance / 100) * move_ai.hit_attempts
+
+            # if damage will likely instantly kill opponent, add extra score - this is likely no time to heal yourself
             if damage_score > opponent.health:
                 damage_score += 5
 
