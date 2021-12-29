@@ -221,7 +221,7 @@ class CreatureOccurrence:
                 # check for weakness
                 if self.__checkTypesWeakness__(so.se.type, type):
                     print(f"Status {so.se.name} extinguished for {self.c.name}")
-                    self.bs.__blitBattleText__(f'EFFECT "{so.se.name}"', f'EXTINGUISHED FOR {self.c.name}')
+                    self.bs.__animateBattleText__(f'EFFECT {so.se.name}', f'EXTINGUISHED FOR {self.c.name}')
                     self.active_statuses.remove(so)
                     i -= 1
                     num_of_statuses -= 1
@@ -231,11 +231,11 @@ class CreatureOccurrence:
 
         if damage > 0:
             print(f"{self.c.name} takes {damage} damage!")
-            self.bs.__blitBattleText__(f"{self.c.name} TAKES {damage} DAMAGE!")
+            self.bs.__animateBattleText__(f"{self.c.name} TAKES {damage} DAMAGE!")
         elif damage < 0:
             if self.health > 0:
                 print(f"{self.c.name} regains {-damage} health!")
-                self.bs.__blitBattleText__(f"{self.c.name} REGAINS {-damage} HEALTH!")
+                self.bs.__animateBattleText__(f"{self.c.name} REGAINS {-damage} HEALTH!")
                 self.total_damage_healed -= damage
 
         prev_health = self.health
@@ -268,13 +268,13 @@ class CreatureOccurrence:
         print(f"Applied status effect {so.se.name} to {self.c.name}!")
 
         if so.status_d == 0:
-            self.bs.__blitBattleText__(f'"{so.se.name}" APPLIED', f"TO {self.c.name} FOR THIS TURN!")
+            self.bs.__animateBattleText__(f'{so.se.name} APPLIED', f"TO {self.c.name} FOR THIS TURN!")
         else:
-            self.bs.__blitBattleText__(f'"{so.se.name}" APPLIED', f"TO {self.c.name} FOR {so.status_d} TURN(S)!")
+            self.bs.__animateBattleText__(f'{so.se.name} APPLIED', f"TO {self.c.name} FOR {so.status_d} TURN(S)!")
         if so.stun_d == 0:
-            self.bs.__blitBattleText__(f'"{so.se.name}" STUNS', f"{self.c.name} FOR THIS TURN!")
+            self.bs.__animateBattleText__(f'{so.se.name} STUNS', f"{self.c.name} FOR THIS TURN!")
         elif so.stun_d > 0:
-            self.bs.__blitBattleText__(f'"{so.se.name}" STUNS', f"{self.c.name} FOR THE NEXT {so.stun_d} TURN(S)!")
+            self.bs.__animateBattleText__(f'{so.se.name} STUNS', f"{self.c.name} FOR THE NEXT {so.stun_d} TURN(S)!")
 
         # actually activate the status
         self.active_statuses.append(so)
@@ -304,14 +304,14 @@ class CreatureOccurrence:
             # check for end of status
             if so.status_d <= 0:
                 print(f"Status {so.se.name} expired for {self.c.name}")
-                self.bs.__blitBattleText__(f'STATUS "{so.se.name}" ', f"EXPIRED FOR {self.c.name} ({j}/{n})")
+                self.bs.__animateBattleText__(f'STATUS {so.se.name} ', f"EXPIRED FOR {self.c.name} ({j}/{n})")
                 self.active_statuses.remove(so)
                 i -= 1
                 num_of_statuses -= 1
             else:
                 print(
                     f"Ticking status {so.se.name} (turns before expired: {so.status_d}|{so.stun_d}) for {self.c.name}...")
-                self.bs.__blitBattleText__(f'"{so.se.name}" IS STILL ', f'APPLIED TO {self.c.name} ({j}/{n})')
+                self.bs.__animateBattleText__(f'{so.se.name} IS STILL ', f'APPLIED TO {self.c.name} ({j}/{n})')
                 so.status_d -= 1
 
                 # activate/deactivate stun
@@ -354,10 +354,10 @@ class CreatureOccurrence:
             for i in range(0, move.hit_attempts):
 
                 if move.hit_attempts > 1:
-                    move_text = f'{self.c.name} USES "{move.name}" ({i + 1}/{move.hit_attempts})!'
+                    move_text = f'{self.c.name} USES {move.name} ({i + 1}/{move.hit_attempts})!'
                 else:
-                    move_text = f'{self.c.name} USES "{move.name}"!'
-                self.bs.__blitBattleText__(move_text)
+                    move_text = f'{self.c.name} USES {move.name}!'
+                self.bs.__animateBattleText__(move_text)
 
                 if move.damage_low < move.damage_high:
                     damage = random.randrange(move.damage_low, move.damage_high + 1)
@@ -368,7 +368,7 @@ class CreatureOccurrence:
 
                 hit_text = "MOVE CONNECTED!"
                 print(f"{hit_text}")
-                self.bs.__blitBattleText__(f"{hit_text}")
+                self.bs.__animateBattleText__(f"{hit_text}")
 
                 # status proc
                 if move.status_effect is not None:
@@ -413,10 +413,10 @@ class CreatureOccurrence:
                 hit_roll = random.randrange(0, 100)
 
                 if move.hit_attempts > 1:
-                    move_text = f'{self.c.name} USES "{move.name}" ({i + 1}/{move.hit_attempts})!'
+                    move_text = f'{self.c.name} USES {move.name} ({i + 1}/{move.hit_attempts})!'
                 else:
-                    move_text = f'{self.c.name} USES "{move.name}"!'
-                self.bs.__blitBattleText__(move_text)
+                    move_text = f'{self.c.name} USES {move.name}!'
+                self.bs.__animateBattleText__(move_text)
 
                 if damage_multiplier == 0:
                     effectiveness_text = "IT HAD NO EFFECT!"
@@ -462,10 +462,10 @@ class CreatureOccurrence:
                 self.bs.__animateRoll__(hit_roll, hit_chance, False)
                 if hit_roll > 100 - hit_chance:
                     print(f"{hit_text} ({hit_roll}|{hit_chance})\n{effectiveness_text}")
-                    self.bs.__blitBattleText__(f"{hit_text}", f"{effectiveness_text}")
+                    self.bs.__animateBattleText__(f"{hit_text}", f"{effectiveness_text}")
                 else:
                     print(f"{hit_text} ({hit_roll}|{hit_chance})")
-                    self.bs.__blitBattleText__(f"{hit_text}")
+                    self.bs.__animateBattleText__(f"{hit_text}")
 
                 opponent.__takeDamage__(damage)
                 opponent.__checkForExtinguishing__(move.type)
@@ -490,11 +490,11 @@ class CreatureOccurrence:
 
             if thorn_damage > 0:  # take damage
                 print(f"{opponent.c.name} retaliates!")
-                self.bs.__blitBattleText__(f"{opponent.c.name} RETALIATES!")
+                self.bs.__animateBattleText__(f"{opponent.c.name} RETALIATES!")
                 self.__takeDamage__(thorn_damage)
             elif thorn_mod_low < 0 and damage > 0:  # heal yourself if you got a hit or a graze
                 print(f"{self.c.name} leeches health from it's opponent!")
-                self.bs.__blitBattleText__(f"{self.c.name} LEECHES HEALTH FROM OPPONENT!")
+                self.bs.__animateBattleText__(f"{self.c.name} LEECHES HEALTH FROM OPPONENT!")
                 self.__takeDamage__(thorn_damage)
 
         # textbox out
@@ -503,6 +503,7 @@ class CreatureOccurrence:
 
 # dictionaries of content
 all_types = {
+    "PERMANENT": Type("PERMANENT"),
     "FIRE": Type("FIRE"),
     "PHYSICAL": Type("PHYSICAL"),
     "FLYING": Type("FLYING"),
@@ -564,6 +565,13 @@ all_types["MAGIC"].__addWeakness__(all_types["NULLIFY"])
 all_types["GRASS"].__addWeakness__(all_types["NULLIFY"])
 
 all_status_effects = {
+    # UNIVERSAL
+    "AI AILMENT":
+        StatusEffect(name="AI AILMENT", type=all_types["PERMANENT"], damage_low=0, damage_high=0,
+                     aim_mod=-4, defense_mod=-4, damage_mod=0, damage_mod_type=None,
+                     status_duration=999, stun_duration=-1,
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=0),
+
     # FRAGONITE THE FIRE DRAGON
     "BURNING":
         StatusEffect(name="BURNING", type=all_types["FIRE"], damage_low=2, damage_high=2,
@@ -753,7 +761,7 @@ all_moves = {
     # SHIGOWI THE WIND GHOST SHAPESHIFTER
     "PHANTOM JAVELINS":
         Move(name="PHANTOM JAVELINS", type=all_types["GHOST"], speed=3, target_self=False,
-             damage_low=4, damage_high=8, aim=75, hit_attempts=3,
+             damage_low=4, damage_high=8, aim=70, hit_attempts=3,
              status_effect=None, status_chance=0, cooldown=1),
     "ESCAPE TO VOID":
         Move(name="ESCAPE TO VOID", type=all_types["GHOST"], speed=5, target_self=True,
@@ -765,7 +773,7 @@ all_moves = {
              status_effect=all_status_effects["TRIPPED"], status_chance=90, cooldown=3),
     "HURRICANE":
         Move(name="HURRICANE", type=all_types["WIND"], speed=1, target_self=False,
-             damage_low=12, damage_high=24, aim=85, hit_attempts=1,
+             damage_low=12, damage_high=18, aim=85, hit_attempts=1,
              status_effect=all_status_effects["TRIPPED"], status_chance=100, cooldown=3),
     "RESET VOID":
         Move(name="RESET VOID", type=all_types["NULLIFY"], speed=5, target_self=True,
@@ -796,33 +804,33 @@ all_moves = {
 
 }
 
-all_creatures = {
-    "FRAGONIRE":
+all_creatures = [
+
         Creature(id=0, name="FRAGONIRE", desc="The Fire Dragon Fragonire",
                  health=60, defense=0, move1=all_moves["FIRE BREATH"], move2=all_moves["DRAGON CLAW"],
                  move3=all_moves["WARMTH"], move4=all_moves["FLIGHT"], move5=all_moves["FIREWALL"],
                  types=(all_types["FIRE"], all_types["PHYSICAL"])),
-    "SCHONIPS":
+
         Creature(id=1, name="SCHONIPS", desc="The Shock Snake Schonips",
                  health=45, defense=20, move1=all_moves["SNAKE BITE"], move2=all_moves["ELECTRIFICATION"],
                  move3=all_moves["ELECTRIC DISCHARGE"], move4=all_moves["SHED SKIN"], move5=all_moves["SHOCK SCREAM"],
                  types=(all_types["ELECTRIC"], all_types["PHYSICAL"])),
-    "PSAWARCA":
+
         Creature(id=2, name="PSAWARCA", desc="The Psychic Water Orca Psawarca",
                  health=65, defense=0, move1=all_moves["PSYCHIC CHALLENGE"], move2=all_moves["WATER CANNON"],
                  move3=all_moves["ILLUSORY SHIELDING"], move4=all_moves["MIRACLE REGEN"], move5=all_moves["WATER WAVE"],
                  types=(all_types["PSYCHIC"], all_types["WATER"], all_types["PHYSICAL"])),
 
-    "SHIGOWI":
+
         Creature(id=3, name="SHIGOWI", desc="The Wind Shapeshifter Shigowi",
-                 health=40, defense=25, move1=all_moves["PHANTOM JAVELINS"], move2=all_moves["ESCAPE TO VOID"],
+                 health=35, defense=25, move1=all_moves["PHANTOM JAVELINS"], move2=all_moves["ESCAPE TO VOID"],
                  move3=all_moves["TRIP OVER"], move4=all_moves["HURRICANE"], move5=all_moves["RESET VOID"],
                  types=(all_types["GHOST"], all_types["WIND"])),
 
-    "BAMAT":
+
         Creature(id=4, name="BAMAT", desc="The Large Magical Bat Bamat",
                  health=70, defense=-10, move1=all_moves["BAT BITE"], move2=all_moves["DROP OF BLOOD"],
                  move3=all_moves["STARVE OPPONENT"], move4=all_moves["BLINDING LIGHT"],
                  move5=all_moves["MAGICAL REINFORCEMENT"],
                  types=(all_types["VAMPIRIC"], all_types["MAGIC"], all_types["PHYSICAL"]))
-}
+]

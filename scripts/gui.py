@@ -56,31 +56,50 @@ class Keys:
 class GUI:
     def __init__(self):
         pygame.init()
-        self.running, self.playing = True, False
+        self.running = True
+        self.paused = False
+        self.return_to_menu = False
+        self.skip_animations = False
 
         pygame.display.set_caption('PYTHON CREATURE ARENA - Dawid Leszczynski WCY19IJ1S1')
         self.DISPLAY_W, self.DISPLAY_H = 1920, 1080
-        self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
+        self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H)) # standard game display
+        self.display_paused = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H)) # semi-transparent display
+        self.display_paused_text = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H)) # to be displayed on top of display_paused
         self.window = pygame.display.set_mode((self.DISPLAY_W, self.DISPLAY_H), pygame.RESIZABLE)
 
         dirname = os.path.dirname(__file__)
         self.font_path = os.path.join(dirname, '../assets/art/fonts/GOODTIME.ttf')
         self.colors = Color()
         self.keys = Keys()
-        self.speed = 2
+        self.allowed_speed = [1, 2, 3, 4]
+        self.current_speed_index = 1
+        self.speed = self.allowed_speed[self.current_speed_index]
         self.clock = pygame.time.Clock()
 
-        self.main_menu = self.current_scene = MainMenu(self)
+        self.main_menu = self.current_scene = MainMenuScene(self)
 
     # delay a certain amount of milliseconds
     def __delay__(self, time: int):
         time = time / self.speed
-        before = now = self.clock.tick(0)
+        before = now = self.clock.tick_busy_loop(0)
         while now <= before + time:
-            now += self.clock.tick(0)
+            now += self.clock.tick_busy_loop(0)
+            if self.paused:
+                dt = 0
+                # if paused, "pause" the clock
+                while self.paused:
+                    dt += self.clock.tick_busy_loop(0)
+                    now += dt
+                    before += dt
+                    # to be able to unpause at all during delay, event handling and all those good things
+                    self.__blitScreen__()
+                time = time / self.speed
+            if self.return_to_menu:
+                return
 
     # draw text centered around x and y coordinates
-    def __blitText__(self, text: str, size: int, x: float, y: float, color: tuple[int, int, int]):
+    def __blitText__(self, text: str, size: int, x: float, y: float, color: tuple[int, int, int], display: pygame.Surface = None):
 
         # resolution scaling multiplier
         res_mp = self.DISPLAY_W / 1920
@@ -96,7 +115,10 @@ class GUI:
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.center = (x, y)
-        self.display.blit(text_surface, text_rect)
+        if display is None:
+            self.display.blit(text_surface, text_rect)
+        else:
+            display.blit(text_surface, text_rect)
 
     # update game based on events
     def __checkEvents__(self):
@@ -105,7 +127,7 @@ class GUI:
         for event in pygame.event.get():
             # quit game
             if event.type == pygame.QUIT:
-                self.running, self.playing, self.current_scene.run_display = False, False, False
+                self.running, self.current_scene.run_display = False, False
                 pygame.display.quit()
                 pygame.quit()
                 sys.exit()
@@ -126,15 +148,57 @@ class GUI:
 
             # check keys
             if event.type == pygame.KEYDOWN:  # any key was pressed down
-                self.keys.keys_down.append(event.key)
+                if event.key == self.keys.BACK[0] or event.key == self.keys.BACK[1]:
+                    self.paused = not self.paused
+                elif self.paused:
+                    if event.key == self.keys.ENTER or event.key == self.keys.CONFIRM[0] or event.key == self.keys.CONFIRM[1]:
+                        print("return to menu")
+                        self.return_to_menu = True
+                        self.current_scene.run_display = False
+                        self.main_menu.run_display = True
+                        self.current_scene = self.main_menu
+                        self.paused = False
+                    if event.key == self.keys.LEFT or event.key == self.keys.A[0] or event.key == self.keys.A[1]:
+                        self.current_speed_index = self.current_speed_index - 1
+                        if self.current_speed_index < 0:
+                            self.current_speed_index = 0
+                        self.speed = self.allowed_speed[self.current_speed_index]
+                    if event.key == self.keys.RIGHT or event.key == self.keys.D[0] or event.key == self.keys.D[1]:
+                        self.current_speed_index = self.current_speed_index + 1
+                        if self.current_speed_index >= self.allowed_speed.__len__():
+                            self.current_speed_index = self.allowed_speed.__len__() - 1
+                        self.speed = self.allowed_speed[self.current_speed_index]
+                    if event.key == self.keys.INFO[0] or event.key == self.keys.INFO[1]:
+                        self.skip_animations = not self.skip_animations
+                else:
+                    self.keys.keys_down.append(event.key)
 
     # blit screen, clear keys and check events
     def __blitScreen__(self):
         self.window.blit(self.display, (0, 0))
+
+        if self.paused:
+            self.display_paused = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
+            self.display_paused_text = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
+
+            self.display_paused.fill((68, 68, 68))
+            self.display_paused.set_alpha(200)
+            self.window.blit(self.display_paused, (0, 0))
+            y_mod = 80
+            self.__blitText__("PAUSED", 120, 960, 300 + y_mod, self.colors.RED, self.display_paused_text)
+            self.__blitText__("THE GAME WAS PAUSED", 60, 960, 420 + y_mod, self.colors.WHITE, self.display_paused_text)
+            self.__blitText__("ESC/BACKSPACE - UNPAUSE", 60, 960, 480 + y_mod, self.colors.WHITE, self.display_paused_text)
+            self.__blitText__("ENTER/SPACE - LOAD TO MENU", 60, 960, 540 + y_mod, self.colors.WHITE,
+                              self.display_paused_text)
+            self.__blitText__(f"A/D - ANIMATION SPEED: {self.speed}", 60, 960, 600 + y_mod, self.colors.WHITE, self.display_paused_text)
+            self.__blitText__(f"TAB - SKIP ANIMATIONS: {self.skip_animations}", 60, 960, 660 + y_mod, self.colors.WHITE,
+                              self.display_paused_text)
+            self.display_paused_text.set_colorkey((0, 0, 0))
+            self.window.blit(self.display_paused_text, (0, 0))
+
         pygame.display.update()
         self.keys.__clearKeys__()
         self.__checkEvents__()
-
 
 class Scene:
     def __init__(self, gui: GUI):
@@ -152,14 +216,23 @@ class Scene:
     # move selected state
     def __updateSelected__(self):
         for k in self.gui.keys.keys_down:
+            if k == self.gui.keys.DOWN:
+                self.selected_y = (self.selected_y + 1) % self.max_y
+            if k == self.gui.keys.UP:
+                self.selected_y = (self.selected_y - 1) % self.max_y
+            if k == self.gui.keys.LEFT:
+                self.selected_x = (self.selected_x - 1) % self.max_x
+            if k == self.gui.keys.RIGHT:
+                self.selected_x = (self.selected_x + 1) % self.max_x
+
             for i in range(0, 2):
-                if k == self.gui.keys.DOWN or k == self.gui.keys.S[i]:
+                if k == self.gui.keys.S[i]:
                     self.selected_y = (self.selected_y + 1) % self.max_y
-                if k == self.gui.keys.UP or k == self.gui.keys.W[i]:
+                if k == self.gui.keys.W[i]:
                     self.selected_y = (self.selected_y - 1) % self.max_y
-                if k == self.gui.keys.LEFT or k == self.gui.keys.A[i]:
+                if k == self.gui.keys.A[i]:
                     self.selected_x = (self.selected_x - 1) % self.max_x
-                if k == self.gui.keys.RIGHT or k == self.gui.keys.D[i]:
+                if k == self.gui.keys.D[i]:
                     self.selected_x = (self.selected_x + 1) % self.max_x
 
     def __displayScene__(self):
@@ -167,7 +240,7 @@ class Scene:
 
 
 # main menu of the game
-class MainMenu(Scene):
+class MainMenuScene(Scene):
     def __init__(self, gui):
         Scene.__init__(self, gui)
         self.text = ['START GAME', 'OPTIONS', 'QUIT GAME']
@@ -177,19 +250,21 @@ class MainMenu(Scene):
 
     def __changeMenuState__(self):
         for k in self.gui.keys.keys_down:
-            if k == self.gui.keys.CONFIRM[0] or k == self.gui.keys.CONFIRM[1] or k == self.gui.keys.ENTER:
+            if k == self.gui.keys.ENTER or k == self.gui.keys.CONFIRM[0] or k == self.gui.keys.CONFIRM[1]:
                 if self.selected_y == 0:  # start a new battle
 
-                    player1_creatures = player2_creatures = \
-                        (cr.CreatureOccurrence(cr.all_creatures["BAMAT"]),
-                         cr.CreatureOccurrence(cr.all_creatures["SCHONIPS"]))
-                    player1 = pl.Player(1, player1_creatures, 3)
+                    player1_creatures = player2_creatures = []
+
+                    random_creature_index = random.randrange(0, cr.all_creatures.__len__())
+                    player1_creatures.append(cr.CreatureOccurrence(cr.all_creatures[random_creature_index]))
+                    random_creature_index = random.randrange(0, cr.all_creatures.__len__())
+                    player2_creatures.append(cr.CreatureOccurrence(cr.all_creatures[random_creature_index]))
+
+                    player1 = pl.Player(1, player1_creatures, -1)
                     player2 = pl.Player(2, player2_creatures, 3)
 
                     self.run_display = False
-                    battle_scene = BattleScene(self.gui, player1, player2)
-                    battle_scene.run_display = True
-                    self.gui.current_scene = battle_scene
+                    self.gui.current_scene = BattleScene(self.gui, player1, player2)
 
                 if self.selected_y == 2:  # gracefully exit the game
                     pygame.display.quit()
@@ -199,6 +274,7 @@ class MainMenu(Scene):
     # blit menu
     def __displayScene__(self):
         while self.run_display:
+            self.gui.return_to_menu = False
             self.__updateSelected__()
             self.__changeMenuState__()
 
@@ -348,11 +424,10 @@ class BattleScene(Scene):
         return player_chosen_moves
 
     def __displayScene__(self):
-        # while running, battle.py will do the work
-        while self.run_display:
-            pass
+        # while running, battle.py will do the work, battle scene will be waiting at this point
 
         # after it's done, go back to main menu
+        self.run_display = False
         self.gui.main_menu.run_display = True
         self.gui.current_scene = self.gui.main_menu
 
@@ -413,14 +488,15 @@ class BattleScene(Scene):
                 rect = rect.move(((79 + 103 * x + 1408 * p_id) * res_mp, (342 + 50 * y) * res_mp))
                 self.gui.display.blit(move, rect)
 
+            # statuses
             for p in (player, opponent):
                 i = 0
-
                 player_index = p.id - 1
                 if p == player:
                     base_x = 46
                 else:
                     base_x = 274
+
                 for status_image in self.player_active_statuses[player_index]:
                     x = i % 3
                     y = math.floor(i / 3)
@@ -449,6 +525,9 @@ class BattleScene(Scene):
             y = lambda index: index - 1
 
         while x(i):
+            if self.gui.return_to_menu or self.gui.skip_animations:
+                return
+
             self.gui.display.fill(self.gui.colors.GRAY)
             self.__blitHealth__()
             self.__blitHUD__()
@@ -479,7 +558,7 @@ class BattleScene(Scene):
         rect = rect.move((230 * res_mp, 679 * res_mp))
         self.gui.display.blit(textbox, rect)
 
-    def __blitBattleText__(self, line1: str, line2: str = None):
+    def __animateBattleText__(self, line1: str, line2: str = None):
         self.last_battle_text[0] = None
         self.last_battle_text[1] = None
 
@@ -492,6 +571,8 @@ class BattleScene(Scene):
 
         message = ''
         for c in line1:
+            if self.gui.return_to_menu or self.gui.skip_animations:
+                return
             message += c
             self.gui.display.fill(self.gui.colors.GRAY)
             self.__blitHealth__()
@@ -512,6 +593,8 @@ class BattleScene(Scene):
             self.last_battle_text[1] = ""
             message = ""
             for c in line2:
+                if self.gui.return_to_menu or self.gui.skip_animations:
+                    return
                 message += c
                 self.gui.display.fill(self.gui.colors.GRAY)
                 self.__blitHealth__()
@@ -588,6 +671,9 @@ class BattleScene(Scene):
             should_update = lambda hp: True if hp < ac.health else False
 
         while should_update(prev_health):
+            if self.gui.return_to_menu or self.gui.skip_animations:
+                return
+
             # update health by 1 point
             prev_health = update_health(prev_health)
 
@@ -626,8 +712,8 @@ class BattleScene(Scene):
 
             # blit screen
             self.gui.__blitScreen__()
-
             self.gui.__delay__(15)
+
         self.gui.__delay__(500)
 
     def __blitHUD__(self):
@@ -948,6 +1034,9 @@ class BattleScene(Scene):
                 message = ''
                 self.gui.__delay__(200)  # 200ms delay between lines
                 for c in text[i]:
+                    if self.gui.return_to_menu or self.gui.skip_animations:
+                        return
+
                     message += c
                     self.gui.display.fill(self.gui.colors.GRAY)
                     self.__blitHealth__()
@@ -1010,6 +1099,9 @@ class BattleScene(Scene):
             message = ''
             self.gui.__delay__(200)  # 200ms delay between lines
             for c in text[i]:
+                if self.gui.return_to_menu or self.gui.skip_animations:
+                    return
+
                 message += c
                 self.gui.display.fill(self.gui.colors.GRAY)
                 self.__blitHealth__()

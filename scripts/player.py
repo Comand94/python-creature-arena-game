@@ -1,3 +1,4 @@
+import math
 import random
 import scripts.creatures as cr
 
@@ -285,7 +286,7 @@ def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
 
 
 class Player:
-    def __init__(self, id: int, creatures: tuple[cr.CreatureOccurrence, ...], ai: int = -1):
+    def __init__(self, id: int, creatures: list[cr.CreatureOccurrence, ...], ai: int = -1):
         self.id = id
         self.creatures = creatures  # player's creatures
         self.ac = creatures[0]  # active creature
@@ -299,6 +300,9 @@ class Player:
         self.assume_blunder_factor = random.uniform(0.1, 0.8)
         # max cap for random score factor (AI can make mistakes in calculations that add randomness)
         self.random_score_factor_cap = 0.25 - float(self.ai / 20)
+        # modifier larger and larger than 1 the longer the move isn't used
+        # if cooldown is high, modifier increases more slowly
+        self.novelty_factor = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
     # was guess correct?
     def risk_evaluation(self, op_assumed: int, op_assumed_name: str, op_roll: int, counter_mode: str):
@@ -345,9 +349,24 @@ class Player:
 
             if self.ac.bs is not None:
                 self.ac.bs.__animateTextbox__(True)
-                self.ac.bs.__blitBattleText__(text[0], text[1])
-                self.ac.bs.__blitBattleText__(text[2], text[3])
+                self.ac.bs.__animateBattleText__(text[0], text[1])
+                self.ac.bs.__animateBattleText__(text[2], text[3])
                 self.ac.bs.__animateTextbox__(False)
+
+    def __calculateNoveltyFactors__(self, move_roll: int):
+        for ind in range(0, 6):
+            if ind != move_roll:
+                # novelty factor grows more slowly for better ai, it impacts it's decisions less
+                increment = 0.15 - 0.005 * (self.ac.c.moves[ind].cooldown + 1) * self.ai
+                if increment < 0.001:
+                    increment = 0.001
+                self.novelty_factor[ind] += increment
+                # cap novelty factor lower for better ai, so it cannot overwrite better decisions as much
+                if self.novelty_factor[ind] > 1.65 - 0.1 * self.ai:
+                    self.novelty_factor[ind] = 1.65 - 0.1 * self.ai
+            else:
+                self.novelty_factor[ind] = 1
+        print(f"p{self.id} novelty factors {self.novelty_factor}")
 
     # returns move index and assumed opponent move if risking, else -1, and a string code "" "c" or "cc"
     # "" stands for normal move, "c" for "countermove" and "cc" for "counter-countermove"
@@ -399,7 +418,7 @@ class Player:
                             n_opponent[omi] += 1
 
                             # figure out own average (safe) move
-                            move_ai_score_sum[ami] += a
+                            move_ai_score_sum[ami] += a * self.novelty_factor[ami] # include novelty factor
                             opponent_score_sum[ami] += b
                             rewards_ai[ami] += move_ai_score_sum[ami] - opponent_score_sum[ami]
 
@@ -451,7 +470,9 @@ class Player:
                 # counter it with the best move in that situation
                 print(f"{self.ac.c.name} is taking risks against {best_avg_move_opponent} with "
                       f"{move_opponent_best_ai_counter_move[best_avg_move_opponent]}")
-                return move_opponent_best_ai_counter_move[best_avg_move_opponent], best_avg_move_opponent, "c"
+                move_roll = move_opponent_best_ai_counter_move[best_avg_move_opponent]
+                self.__calculateNoveltyFactors__(move_roll)
+                return move_roll, best_avg_move_opponent, "c"
 
             # counter a risk move
             counter_roll = random.uniform(0, 2)
@@ -459,7 +480,9 @@ class Player:
                     counter_roll < self.assume_blunder_factor and best_risky_move_opponent != -1:
                 print(f"{self.ac.c.name} assumes blunder of {best_risky_move_opponent}, uses "
                       f"{move_opponent_best_ai_counter_move[best_risky_move_opponent]}")
-                return move_opponent_best_ai_counter_move[best_risky_move_opponent], best_risky_move_opponent, "cc"
+                move_roll = move_opponent_best_ai_counter_move[best_risky_move_opponent]
+                self.__calculateNoveltyFactors__(move_roll)
+                return move_roll, best_risky_move_opponent, "cc"
 
             # function finished if took risk, else take an average move
             # when taking an average move, risk aversion subsides a little, blunder assumptions rise
@@ -491,5 +514,9 @@ class Player:
             else:
                 move_roll = best_avg_moves_ai_0
             #print(f"move_roll {move_roll}")
+
+            # calculate new novelty factors
+            self.__calculateNoveltyFactors__(move_roll)
+
             return move_roll, -1, ""
 

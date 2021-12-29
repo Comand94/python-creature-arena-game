@@ -1,3 +1,4 @@
+import math
 import random
 import pygame
 
@@ -42,6 +43,14 @@ class Battle:
         p1_move_count = [0, 0, 0, 0, 0, 0]
         p2_move_count = [0, 0, 0, 0, 0, 0]
 
+        # less health for ai on lower difficulties
+        for p in (self.p1, self.p2):
+            if p.ai >= 0:
+                range_top = 5 - p.ai
+                for i in range(0, range_top):
+                    p.ac.health -= math.ceil(0.05 * p.ac.c.health)
+                    p.ac.active_statuses.append(cr.StatusOccurrence(cr.all_status_effects["AI AILMENT"]))
+
         while self.p1.ac.health > 0 and self.p2.ac.health > 0:
 
             # clear moves
@@ -52,6 +61,8 @@ class Battle:
             self.bs.__blitHealth__()
             self.bs.__blitHUD__()
             self.bs.gui.__blitScreen__()
+            if self.bs.gui.return_to_menu:
+                return
 
             print()
             self.bs.active_player = 1
@@ -85,6 +96,8 @@ class Battle:
                 self.bs.__blitReadiness__(p1_move_roll, p2_move_roll)
                 self.bs.__blitHUD__()
                 self.bs.gui.__blitScreen__()
+                if self.bs.gui.return_to_menu:
+                    return
 
                 if p1_move_roll == -1 and self.p1.ai >= 0:
                     p1_move_roll, p2_assumed, p2_assumed_mode = self.p1.__calculateMove__(self.p2.ac)
@@ -102,6 +115,8 @@ class Battle:
             self.bs.__blitReadiness__(p1_move_roll, p2_move_roll)
             self.bs.__blitHUD__()
             self.bs.gui.__blitScreen__()
+            if self.bs.gui.return_to_menu:
+                return
 
             self.bs.gui.__delay__(3000)
 
@@ -145,10 +160,12 @@ class Battle:
                 self.bs.__blitHealth__()
                 self.bs.__blitHUD__()
                 self.bs.gui.__blitScreen__()
+                if self.bs.gui.return_to_menu:
+                    return
 
                 self.bs.active_player = 1
                 self.bs.__animateTextbox__(True)
-                self.bs.__blitBattleText__(f"{self.p1.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
+                self.bs.__animateBattleText__(f"{self.p1.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
                 self.bs.__animateTextbox__(False)
                 self.bs.active_player = -1
 
@@ -161,10 +178,12 @@ class Battle:
                 self.bs.__blitHealth__()
                 self.bs.__blitHUD__()
                 self.bs.gui.__blitScreen__()
+                if self.bs.gui.return_to_menu:
+                    return
 
                 self.bs.active_player = 2
                 self.bs.__animateTextbox__(True)
-                self.bs.__blitBattleText__(f"{self.p2.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
+                self.bs.__animateBattleText__(f"{self.p2.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
                 self.bs.__animateTextbox__(False)
                 self.bs.active_player = -1
 
@@ -199,7 +218,7 @@ class Battle:
                     print("Player 1 is stunned out of his move and skips the turn!")
 
                     self.bs.__animateTextbox__(True)
-                    self.bs.__blitBattleText__(f"{self.p1.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
+                    self.bs.__animateBattleText__(f"{self.p1.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
                     self.bs.__animateTextbox__(False)
 
                     # mark ending of turn
@@ -228,7 +247,7 @@ class Battle:
                     print("Player 2 is stunned out of his move and skips the turn!")
 
                     self.bs.__animateTextbox__(True)
-                    self.bs.__blitBattleText__(f"{self.p2.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
+                    self.bs.__animateBattleText__(f"{self.p2.ac.c.name} IS STUNNED AND SKIPS THE TURN!")
                     self.bs.__animateTextbox__(False)
 
                     # mark ending of turn
@@ -253,6 +272,8 @@ class Battle:
             self.bs.__blitHealth__()
             self.bs.__blitHUD__()
             self.bs.gui.__blitScreen__()
+            if self.bs.gui.return_to_menu:
+                return
 
             self.bs.gui.__delay__(1000)
 
@@ -263,9 +284,11 @@ class Battle:
             self.bs.__blitHealth__()
             self.bs.__blitHUD__()
             self.bs.gui.__blitScreen__()
+            if self.bs.gui.return_to_menu:
+                return
 
             self.bs.__animateTextbox__(True)
-            self.bs.__blitBattleText__(f"{self.p2.ac.c.name} WINS!")
+            self.bs.__animateBattleText__(f"{self.p2.ac.c.name} WINS!")
 
         elif self.p1.ac.health > 0 and self.p2.ac.health <= 0:
             print("\nPLAYER 1 WINS!")
@@ -274,9 +297,11 @@ class Battle:
             self.bs.__blitHealth__()
             self.bs.__blitHUD__()
             self.bs.gui.__blitScreen__()
+            if self.bs.gui.return_to_menu:
+                return
 
             self.bs.__animateTextbox__(True)
-            self.bs.__blitBattleText__(f"{self.p1.ac.c.name} WINS!")
+            self.bs.__animateBattleText__(f"{self.p1.ac.c.name} WINS!")
 
         else:
             print("\nDRAW! NO ONE WINS!")
@@ -285,12 +310,14 @@ class Battle:
             self.bs.__blitHealth__()
             self.bs.__blitHUD__()
             self.bs.gui.__blitScreen__()
+            if self.bs.gui.return_to_menu:
+                return
 
             self.bs.__animateTextbox__(True)
-            self.bs.__blitBattleText__(f"DRAW! NO ONE WINS!")
+            self.bs.__animateBattleText__(f"DRAW! NO ONE WINS!")
 
         print(f"Player 1 health: {self.p1.ac.health}\nPlayer 2 health: {self.p2.ac.health}")
         print(f"Player 1 move count & health healed: {p1_move_count} & {self.p1.ac.total_damage_healed}")
         print(f"Player 2 move count & health healed: {p2_move_count} & {self.p2.ac.total_damage_healed}")
 
-        self.bs.run_display = False
+        self.bs.gui.__delay__(5000)
