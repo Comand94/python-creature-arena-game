@@ -1,6 +1,5 @@
 import math
 import random
-import pygame
 
 import scripts.player as pl
 import scripts.creatures as cr
@@ -13,6 +12,54 @@ class Battle:
         self.p2 = p2
         self.bs = battle_scene
         self.__startBattle__()
+
+    def __applyAIModifier__(self, p: pl.Player):
+        range_top = 5 - p.ai
+        health_penalty_mult = range_top - 1
+        if health_penalty_mult < 0:
+            health_penalty_mult = 0
+        p.ac.health -= math.ceil(0.04 * p.ac.c.health * health_penalty_mult)
+
+        # modify ai damage for different difficulties
+        if range_top > 3:
+            ai_damage_mod = -1
+        elif range_top > -3:
+            ai_damage_mod = 0
+        else:
+            ai_damage_mod = 1
+
+        # modify ai stats for different difficulties
+        ai_stat_mod = 0
+        if range_top > 0:
+            for i in range(0, range_top):
+                ai_stat_mod -= 3
+        elif range_top < 0:
+            for i in range(range_top, 0):
+                ai_stat_mod += 3
+        else:
+            ai_stat_mod = 0
+
+        # hardcore ai regen
+        if range_top < -3:
+            if range_top < -4:
+                ai_hp_regen = 2
+            else:
+                ai_hp_regen = 1
+        else:
+            ai_hp_regen = 0
+
+        if p.id == 1:
+            cr.all_status_effects["AI MODIFIER 1"].defense_mod = cr.all_status_effects[
+                "AI MODIFIER 1"].aim_mod = ai_stat_mod
+            cr.all_status_effects["AI MODIFIER 1"].damage_mod = ai_damage_mod
+            cr.all_status_effects["AI MODIFIER 1"].damage_low = -ai_hp_regen
+            p.ac.active_statuses.append(cr.StatusOccurrence(cr.all_status_effects["AI MODIFIER 1"]))
+        else:
+            cr.all_status_effects["AI MODIFIER 2"].defense_mod = cr.all_status_effects[
+                "AI MODIFIER 2"].aim_mod = ai_stat_mod
+            cr.all_status_effects["AI MODIFIER 2"].damage_mod = ai_damage_mod
+            cr.all_status_effects["AI MODIFIER 2"].damage_low = -ai_hp_regen
+            p.ac.active_statuses.append(cr.StatusOccurrence(cr.all_status_effects["AI MODIFIER 2"]))
 
     def __startBattle__(self):
 
@@ -43,13 +90,10 @@ class Battle:
         p1_move_count = [0, 0, 0, 0, 0, 0]
         p2_move_count = [0, 0, 0, 0, 0, 0]
 
-        # less health for ai on lower difficulties
+        # different ai stats
         for p in (self.p1, self.p2):
             if p.ai >= 0:
-                range_top = 5 - p.ai
-                for i in range(0, range_top):
-                    p.ac.health -= math.ceil(0.05 * p.ac.c.health)
-                    p.ac.active_statuses.append(cr.StatusOccurrence(cr.all_status_effects["AI AILMENT"]))
+                self.__applyAIModifier__(p)
 
         while self.p1.ac.health > 0 and self.p2.ac.health > 0:
 
@@ -107,7 +151,7 @@ class Battle:
                     p2_move_roll, p1_assumed, p1_assumed_mode = self.p2.__calculateMove__(self.p1.ac)
                     print(f"{self.p2.ac.c.name} rolled {p2_move_roll}, cooldown: {self.p2.ac.cooldowns[p2_move_roll]}")
 
-                p1_move_roll, p2_move_roll = self.bs.__updateInput__([p1_move_roll, p2_move_roll])
+                p1_move_roll, p2_move_roll = self.bs.__updateSelected__([p1_move_roll, p2_move_roll])
 
             self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
             self.bs.__blitHealth__()
@@ -288,7 +332,7 @@ class Battle:
                 return
 
             self.bs.__animateTextbox__(True)
-            self.bs.__animateBattleText__(f"{self.p2.ac.c.name} WINS!")
+            self.bs.__animateBattleText__(f"PLAYER 2 WINS!")
 
         elif self.p1.ac.health > 0 and self.p2.ac.health <= 0:
             print("\nPLAYER 1 WINS!")
@@ -301,7 +345,7 @@ class Battle:
                 return
 
             self.bs.__animateTextbox__(True)
-            self.bs.__animateBattleText__(f"{self.p1.ac.c.name} WINS!")
+            self.bs.__animateBattleText__(f"PLAYER 1 WINS!")
 
         else:
             print("\nDRAW! NO ONE WINS!")

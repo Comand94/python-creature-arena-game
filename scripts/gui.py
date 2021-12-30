@@ -18,13 +18,16 @@ class Color:
         self.BLEEDING_WHITE = (255, 200, 200)
         self.GREENING_WHITE = (200, 255, 200)
         self.BLUEISH_WHITE = (200, 200, 255)
+        self.CYANISH_WHITE = (190, 230, 255)
         self.BLACK = (0, 0, 0)
         self.GRAY = (68, 68, 68)
+        self.BLUEISH_GRAY = (68, 68, 102)
         self.LIGHT_GRAY = (136, 136, 136)
         self.GREEN = (0, 255, 0)
         self.RED = (255, 0, 0)
         self.BLUE = (0, 0, 255)
         self.CYAN = (0, 200, 255)
+        self.PINK = (255, 0, 255)
 
 
 # pressed keys and key definitions
@@ -72,8 +75,8 @@ class GUI:
         self.font_path = os.path.join(dirname, '../assets/art/fonts/GOODTIME.ttf')
         self.colors = Color()
         self.keys = Keys()
-        self.allowed_speed = [1, 2, 3, 4]
-        self.current_speed_index = 1
+        self.allowed_speed = [0.5, 1, 2, 3, 4, 6]
+        self.current_speed_index = 2
         self.speed = self.allowed_speed[self.current_speed_index]
         self.clock = pygame.time.Clock()
 
@@ -208,12 +211,128 @@ class Scene:
         self.color_text_secondary = self.gui.colors.BLACK
         self.color_text_grayed_out = self.gui.colors.GRAY
         self.color_text_selected = self.gui.colors.GREEN
+
+    def __displayScene__(self):
+        pass
+
+class MatchSettingsScene(Scene):
+    def __init__(self, gui):
+        Scene.__init__(self, gui)
+        self.text = ['START MATCH', 'PLAYER', 'CREATURE']
+        self.text_offset_mp = [-150, 100, 200]
         self.selected_x = 0
         self.selected_y = 0
         self.max_x = 1
-        self.max_y = 1
+        self.max_y = 3
+        self.player_ai = [-1, -1]
+        self.player_creature = [0, 0]
 
-    # move selected state
+    def __updateSelected__(self):
+        for k in self.gui.keys.keys_down:
+            if k == self.gui.keys.ENTER or k == self.gui.keys.CONFIRM[0] or k == self.gui.keys.CONFIRM[1]:
+                if self.selected_y == 0: # start game with current settings
+                    player1_creatures = player2_creatures = []
+
+                    player1_creatures.append(cr.CreatureOccurrence(cr.all_creatures[self.player_creature[0]]))
+                    player2_creatures.append(cr.CreatureOccurrence(cr.all_creatures[self.player_creature[1]]))
+
+                    player1 = pl.Player(1, player1_creatures, self.player_ai[0])
+                    player2 = pl.Player(2, player2_creatures, self.player_ai[1])
+
+                    self.run_display = False
+                    self.gui.current_scene = BattleScene(self.gui, player1, player2, False)
+
+            if k == self.gui.keys.DOWN or k == self.gui.keys.S[0] or k == self.gui.keys.S[1]: # one down
+                self.selected_y = (self.selected_y + 1) % self.max_y
+
+            if k == self.gui.keys.UP or k == self.gui.keys.W[0] or k == self.gui.keys.W[1]: # one up
+                self.selected_y = (self.selected_y - 1) % self.max_y
+
+            if k == self.gui.keys.LEFT or k == self.gui.keys.A[0] or k == self.gui.keys.A[1]: # change left side
+                if self.selected_y == 1: # ai
+                    self.player_ai[0] += 1
+                    if self.player_ai[0] > 10:
+                        self.player_ai[0] = -1
+                elif self.selected_y == 2: # creature
+                    self.player_creature[0] += 1
+                    if self.player_creature[0] >= cr.all_creatures.__len__():
+                        self.player_creature[0] = 0
+
+            if k == self.gui.keys.RIGHT or k == self.gui.keys.D[0] or k == self.gui.keys.D[1]: # change right side
+                if self.selected_y == 1: # ai
+                    self.player_ai[1] += 1
+                    if self.player_ai[1] > 10:
+                        self.player_ai[1] = -1
+                elif self.selected_y == 2: # creature
+                    self.player_creature[1] += 1
+                    if self.player_creature[1] >= cr.all_creatures.__len__():
+                        self.player_creature[1] = 0
+
+    def __displayScene__(self):
+        while self.run_display:
+            self.gui.return_to_menu = False
+            self.gui.display.fill(self.gui.colors.GRAY)
+            self.__updateSelected__()
+
+            self.gui.display.fill(self.gui.colors.GRAY)
+            for i in range(0, 3):
+                if i == self.selected_y:
+                    color = self.color_text_selected
+                else:
+                    color = self.color_text
+                text_size = 60
+                text_size_2 = 30
+                text_size_3 = 90
+                text_x = 960
+                text_y = 540
+
+                if i == 0:
+                    size = text_size_3
+                else:
+                    size = text_size
+
+                self.gui.__blitText__(self.text[i], size, text_x, text_y + self.text_offset_mp[i], color)
+
+                if i == 0:
+                    self.gui.__blitText__("PLAYER 1", text_size_2, text_x - 400,
+                                          text_y + self.text_offset_mp[i + 1] - 100, self.gui.colors.CYAN)
+                    self.gui.__blitText__("PLAYER 2", text_size_2, text_x + 400,
+                                          text_y + self.text_offset_mp[i + 1] - 100, self.gui.colors.RED)
+                elif i == 1:
+                    if self.player_ai[0] == -1:
+                        player_text = "HUMAN"
+                    else:
+                        player_text = f"AI LVL: {self.player_ai[0]}"
+                    self.gui.__blitText__(player_text, text_size_2, text_x - 400,
+                                            text_y + self.text_offset_mp[i], self.gui.colors.CYANISH_WHITE)
+
+                    if self.player_ai[1] == -1:
+                        player_text = "HUMAN"
+                    else:
+                        player_text = f"AI LVL: {self.player_ai[1]}"
+                    self.gui.__blitText__(player_text, text_size_2, text_x + 400,
+                                            text_y + self.text_offset_mp[i], self.gui.colors.BLEEDING_WHITE)
+
+                elif i == 2:
+                    self.gui.__blitText__(cr.all_creatures[self.player_creature[0]].name, text_size_2, text_x - 400,
+                                          text_y + self.text_offset_mp[i], self.gui.colors.CYANISH_WHITE)
+                    self.gui.__blitText__(cr.all_creatures[self.player_creature[1]].name, text_size_2, text_x + 400,
+                                          text_y + self.text_offset_mp[i], self.gui.colors.BLEEDING_WHITE)
+
+            self.gui.__blitScreen__()
+
+
+# main menu of the game
+class MainMenuScene(Scene):
+    def __init__(self, gui):
+        Scene.__init__(self, gui)
+        self.text = ['NEW MATCH', 'CREATURE INDEX', 'QUIT GAME']
+        self.text_offset_mp = [-100, 0, 100]
+        self.selected_x = 0
+        self.selected_y = 0
+        self.max_x = 1
+        self.max_y = 3
+
     def __updateSelected__(self):
         for k in self.gui.keys.keys_down:
             if k == self.gui.keys.DOWN:
@@ -235,24 +354,14 @@ class Scene:
                 if k == self.gui.keys.D[i]:
                     self.selected_x = (self.selected_x + 1) % self.max_x
 
-    def __displayScene__(self):
-        pass
-
-
-# main menu of the game
-class MainMenuScene(Scene):
-    def __init__(self, gui):
-        Scene.__init__(self, gui)
-        self.text = ['START GAME', 'OPTIONS', 'QUIT GAME']
-        self.text_offset_mp = [-90, 0, 90]
-        self.max_x = 1
-        self.max_y = 3
-
     def __changeMenuState__(self):
         for k in self.gui.keys.keys_down:
             if k == self.gui.keys.ENTER or k == self.gui.keys.CONFIRM[0] or k == self.gui.keys.CONFIRM[1]:
-                if self.selected_y == 0:  # start a new battle
+                if self.selected_y == 0:  # open new match settings
+                    self.run_display = False
+                    self.gui.current_scene = MatchSettingsScene(self.gui)
 
+                if self.selected_y == 1: # start index
                     player1_creatures = player2_creatures = []
 
                     random_creature_index = random.randrange(0, cr.all_creatures.__len__())
@@ -261,10 +370,10 @@ class MainMenuScene(Scene):
                     player2_creatures.append(cr.CreatureOccurrence(cr.all_creatures[random_creature_index]))
 
                     player1 = pl.Player(1, player1_creatures, -1)
-                    player2 = pl.Player(2, player2_creatures, 3)
+                    player2 = pl.Player(2, player2_creatures, -1)
 
                     self.run_display = False
-                    self.gui.current_scene = BattleScene(self.gui, player1, player2)
+                    self.gui.current_scene = BattleScene(self.gui, player1, player2, True)
 
                 if self.selected_y == 2:  # gracefully exit the game
                     pygame.display.quit()
@@ -292,11 +401,12 @@ class MainMenuScene(Scene):
 
 
 class BattleScene(Scene):
-    def __init__(self, gui: GUI, p1: pl.Player, p2: pl.Player):
+    def __init__(self, gui: GUI, p1: pl.Player, p2: pl.Player, testing: bool = False):
         Scene.__init__(self, gui)
         self.color_health = gui.colors.RED
         self.p1 = p1
         self.p2 = p2
+        self.player_selected_creature = [0, 0]
         self.textbox_up = False
         self.player_button_tips = [["Q", "W", "E", "A", "S", "D", "TAB"], ["4", "5", "6", "1", "2", "3", "PLUS"]]
         self.active_player = -1
@@ -306,12 +416,13 @@ class BattleScene(Scene):
         self.player_thorn_lows = [0, 0]
         self.player_thorn_highs = [0, 0]
         self.player_infobox_up = [False, False]
-        self.player_max_x = 6
-        self.player_max_y = 8
-        self.player_max_z = 1
-        self.player_selected_x = [0, 0]
-        self.player_selected_y = [0, 0]
+        self.player_max_x = [6, cr.all_types.__len__()]
+        self.player_max_y = [8, 1]
+        self.player_max_z = 2
+        self.player_selected_x = [[0, 0], [0, 0]]
+        self.player_selected_y = [[0, 0], [0, 0]]
         self.player_selected_z = [0, 0]
+        self.testing = testing
 
         # get directory
         self.dirname = os.path.dirname(__file__)
@@ -342,6 +453,13 @@ class BattleScene(Scene):
         infobox_path = os.path.join(self.dirname, f'../assets/art/interface/p2_infobox.png')
         self.player_infobox.append(pygame.image.load(infobox_path))
 
+        # get typeboxes
+        self.player_typebox = []
+        typebox_path = os.path.join(self.dirname, f'../assets/art/interface/p1_typebox.png')
+        self.player_typebox.append(pygame.image.load(typebox_path))
+        typebox_path = os.path.join(self.dirname, f'../assets/art/interface/p2_typebox.png')
+        self.player_typebox.append(pygame.image.load(typebox_path))
+
         # get infobox selected ability and status
         self.selected = []
         selected_path = os.path.join(self.dirname, f'../assets/art/interface/selected_ability.png')
@@ -349,10 +467,11 @@ class BattleScene(Scene):
         selected_path = os.path.join(self.dirname, f'../assets/art/interface/selected_status.png')
         self.selected.append(pygame.image.load(selected_path))
 
-        import scripts.battle as sb
-        self.battle = sb.Battle(self, p1, p2)
+        if not self.testing:
+            import scripts.battle as sb
+            self.battle = sb.Battle(self, p1, p2)
 
-    def __updateInput__(self, player_curr_moves: [int, int]) -> (int, int):
+    def __updateSelected__(self, player_curr_moves: [int, int]) -> (int, int):
 
         player_chosen_moves = [-1, -1]
 
@@ -368,63 +487,114 @@ class BattleScene(Scene):
 
             # update moves if off cooldown and infobox closed, else navigate infobox
             for k in self.gui.keys.keys_down:
-                if player_chosen_moves[i] == -1 and p.ai < 0 and not self.player_infobox_up[i]:
+                if self.testing and not self.player_infobox_up[i]:
+                    if k == self.gui.keys.A[i]:
+                        self.player_selected_creature[i] = (self.player_selected_creature[i] - 1) % p.creatures.__len__()
+                        p.ac = p.creatures[self.player_selected_creature[i]]
+                    if k == self.gui.keys.D[i]:
+                        self.player_selected_creature[i] = (self.player_selected_creature[i] + 1) % p.creatures.__len__()
+                        p.ac = p.creatures[self.player_selected_creature[i]]
                     if k == self.gui.keys.INFO[i]:
                         self.player_infobox_up[i] = True
-                    if k == self.gui.keys.Q[i] and self.p1.ac.cooldowns[0] <= 0:
+                elif player_chosen_moves[i] == -1 and p.ai < 0 and not self.player_infobox_up[i] and not self.testing:
+                    if k == self.gui.keys.INFO[i]:
+                        self.player_infobox_up[i] = True
+                    if k == self.gui.keys.Q[i] and p.ac.cooldowns[0] <= 0:
                         player_chosen_moves[i] = 0
-                    if k == self.gui.keys.W[i] and self.p1.ac.cooldowns[1] <= 0:
+                    if k == self.gui.keys.W[i] and p.ac.cooldowns[1] <= 0:
                         player_chosen_moves[i] = 1
-                    if k == self.gui.keys.E[i] and self.p1.ac.cooldowns[2] <= 0:
+                    if k == self.gui.keys.E[i] and p.ac.cooldowns[2] <= 0:
                         player_chosen_moves[i] = 2
-                    if k == self.gui.keys.A[i] and self.p1.ac.cooldowns[3] <= 0:
+                    if k == self.gui.keys.A[i] and p.ac.cooldowns[3] <= 0:
                         player_chosen_moves[i] = 3
-                    if k == self.gui.keys.S[i] and self.p1.ac.cooldowns[4] <= 0:
+                    if k == self.gui.keys.S[i] and p.ac.cooldowns[4] <= 0:
                         player_chosen_moves[i] = 4
-                    if k == self.gui.keys.D[i] and self.p1.ac.cooldowns[5] <= 0:
+                    if k == self.gui.keys.D[i] and p.ac.cooldowns[5] <= 0:
                         player_chosen_moves[i] = 5
-                elif player_chosen_moves[i] == -1 and self.p1.ai < 0 and self.player_infobox_up[i]:
+                elif player_chosen_moves[i] == -1 and p.ai < 0 and self.player_infobox_up[i] and self.player_selected_z[i] == 0:
                     if k == self.gui.keys.INFO[i]:
                         self.player_infobox_up[i] = False
                     if k == self.gui.keys.Q[i]:
                         self.player_selected_z[i] = (self.player_selected_z[i] + 1) % self.player_max_z
                     if k == self.gui.keys.W[i]:
-                        self.player_selected_y[i] = (self.player_selected_y[i] - 1) % self.player_max_y
-                        if self.player_selected_x[i] >= 2 and self.player_selected_y[i] == 2:
-                            self.player_selected_x[i] -= 1
-                        if self.player_selected_x[i] >= 4 and self.player_selected_y[i] == 2:
-                            self.player_selected_x[i] -= 1
-                        if self.player_selected_x[i] >= 2 and self.player_selected_y[i] == 7:
-                            self.player_selected_x[i] += 1
+                        self.player_selected_y[0][i] = (self.player_selected_y[0][i] - 1) % self.player_max_y[0]
+                        if self.player_selected_x[0][i] >= 2 and self.player_selected_y[0][i] == 2:
+                            self.player_selected_x[0][i] -= 1
+                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] == 2:
+                            self.player_selected_x[0][i] -= 1
+                        if self.player_selected_x[0][i] >= 2 and self.player_selected_y[0][i] == 7:
+                            self.player_selected_x[0][i] += 1
                         # safety check
-                        if self.player_selected_x[i] >= 4 and self.player_selected_y[i] <= 2:
-                            self.player_selected_x[i] = 3
+                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] <= 2:
+                            self.player_selected_x[0][i] = 3
                     if k == self.gui.keys.E[i]:
                         self.player_selected_z[i] = (self.player_selected_z[i] - 1) % self.player_max_z
                     if k == self.gui.keys.A[i]:
-                        self.player_selected_x[i] = (self.player_selected_x[i] - 1) % self.player_max_x
-                        if self.player_selected_x[i] >= 4 and self.player_selected_y[i] <= 2:
-                            self.player_selected_x[i] = 3
+                        self.player_selected_x[0][i] = (self.player_selected_x[0][i] - 1) % self.player_max_x[0]
+                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] <= 2:
+                            self.player_selected_x[0][i] = 3
                     if k == self.gui.keys.S[i]:
-                        self.player_selected_y[i] = (self.player_selected_y[i] + 1) % self.player_max_y
-                        if self.player_selected_x[i] >= 2 and self.player_selected_y[i] == 0:
-                            self.player_selected_x[i] -= 1
-                        if self.player_selected_x[i] >= 4 and self.player_selected_y[i] == 0:
-                            self.player_selected_x[i] -= 1
-                        if self.player_selected_x[i] >= 2 and self.player_selected_y[i] == 3:
-                            self.player_selected_x[i] += 1
+                        self.player_selected_y[0][i] = (self.player_selected_y[0][i] + 1) % self.player_max_y[0]
+                        if self.player_selected_x[0][i] >= 2 and self.player_selected_y[0][i] == 0:
+                            self.player_selected_x[0][i] -= 1
+                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] == 0:
+                            self.player_selected_x[0][i] -= 1
+                        if self.player_selected_x[0][i] >= 2 and self.player_selected_y[0][i] == 3:
+                            self.player_selected_x[0][i] += 1
                         # safety check
-                        if self.player_selected_x[i] >= 4 and self.player_selected_y[i] <= 2:
-                            self.player_selected_x[i] = 3
+                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] <= 2:
+                            self.player_selected_x[0][i] = 3
                     if k == self.gui.keys.D[i]:
-                        self.player_selected_x[i] = (self.player_selected_x[i] + 1) % self.player_max_x
-                        if self.player_selected_x[i] >= 4 and self.player_selected_y[i] <= 2:
-                            self.player_selected_x[i] = 0
+                        self.player_selected_x[0][i] = (self.player_selected_x[0][i] + 1) % self.player_max_x[0]
+                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] <= 2:
+                            self.player_selected_x[0][i] = 0
+                elif player_chosen_moves[i] == -1 and p.ai < 0 and self.player_infobox_up[i] and self.player_selected_z[i] == 1:
+                    if k == self.gui.keys.INFO[i]:
+                        self.player_infobox_up[i] = False
+                    if k == self.gui.keys.Q[i]:
+                        self.player_selected_z[i] = (self.player_selected_z[i] + 1) % self.player_max_z
+                    if k == self.gui.keys.E[i]:
+                        self.player_selected_z[i] = (self.player_selected_z[i] - 1) % self.player_max_z
+                    if k == self.gui.keys.A[i]:
+                        self.player_selected_x[1][i] = (self.player_selected_x[1][i] - 1) % self.player_max_x[1]
+                    if k == self.gui.keys.D[i]:
+                        self.player_selected_x[1][i] = (self.player_selected_x[1][i] + 1) % self.player_max_x[1]
+
 
         return player_chosen_moves
 
     def __displayScene__(self):
         # while running, battle.py will do the work, battle scene will be waiting at this point
+        # while testing, run hud and check for inputs
+        if self.testing:
+            self.p1.ai = self.p2.ai = -1
+            self.p1.creatures.clear()
+            self.p2.creatures.clear()
+            creatures = []
+
+            c: cr.Creature
+            for c in cr.all_creatures:
+                co = cr.CreatureOccurrence(c)
+                creatures.append(co)
+
+            self.p1.creatures = self.p2.creatures = creatures
+            self.p1.ac = self.p1.creatures[0]
+            self.p2.ac = self.p2.creatures[0]
+
+            self.p1.ac.__joinBattleScene__(self)
+            self.p2.ac.__joinBattleScene__(self)
+
+            self.__updateAbilityImages__()
+
+            while self.testing:
+                self.__updateSelected__((-1, -1))
+                self.gui.display.fill(self.gui.colors.BLUEISH_GRAY)
+                self.__blitHealth__()
+                self.__blitModifiers__()
+                self.__blitHUD__()
+                self.gui.__blitScreen__()
+                if self.gui.return_to_menu:
+                    self.testing = False
 
         # after it's done, go back to main menu
         self.run_display = False
@@ -729,40 +899,44 @@ class BattleScene(Scene):
                 self.gui.__blitText__(self.last_battle_text[0], 45, 960, 720, self.gui.colors.BLACK)
                 self.gui.__blitText__(self.last_battle_text[1], 45, 960, 780, self.gui.colors.BLACK)
 
+
         # abilities black background
-        for i in range(0, 2):
-            p_ability_background = pygame.Rect((res_mp * (34 + 948 * i), res_mp * 860, res_mp * 904, res_mp * 180))
-            self.gui.display.fill(self.gui.colors.BLACK, p_ability_background)
+        if not self.testing:
+            for i in range(0, 2):
+                p_ability_background = pygame.Rect((res_mp * (34 + 948 * i), res_mp * 860, res_mp * 904, res_mp * 180))
+                self.gui.display.fill(self.gui.colors.BLACK, p_ability_background)
 
         # abilities
-        for p in range(1, 3):  # for players
-            for i in range(0, 6):  # for abilities
+        for p_id in range(0, 2):  # for players
+            if not self.testing:
+                for i in range(0, 6):  # for abilities
 
-                # get coordinate modifiers
-                if i > 2:
-                    j = 1
-                    k = i - 3
-                else:
-                    j = 0
-                    k = i
+                    # get coordinate modifiers
+                    if i > 2:
+                        j = 1
+                        k = i - 3
+                    else:
+                        j = 0
+                        k = i
 
-                # get base x coordinate
-                if p == 1:
-                    base_x = 147
-                else:
-                    base_x = 1155
+                    # get base x coordinate
+                    if p_id == 0:
+                        base_x = 147
+                    else:
+                        base_x = 1155
 
-                # get image
-                ability = pygame.transform.scale(self.player_abilities[p - 1][i], (138 * res_mp, 64 * res_mp))
+                    # get image
+                    ability = pygame.transform.scale(self.player_abilities[p_id][i], (138 * res_mp, 64 * res_mp))
 
-                # blit ability
-                rect = ability.get_rect()
-                rect = rect.move(((base_x + 242 * k) * res_mp, (875 + 90 * j) * res_mp))
-                self.gui.display.blit(ability, rect)
-            ability = pygame.transform.scale(self.player_abilities[p - 1][6], (71 * res_mp, 64 * res_mp))
+                    # blit ability
+                    rect = ability.get_rect()
+                    rect = rect.move(((base_x + 242 * k) * res_mp, (875 + 90 * j) * res_mp))
+                    self.gui.display.blit(ability, rect)
+            ability = pygame.transform.scale(self.player_abilities[p_id][6], (71 * res_mp, 64 * res_mp))
             rect = ability.get_rect()
-            rect = rect.move(((813 + 227 * (p - 1)) * res_mp, 965 * res_mp))
+            rect = rect.move(((813 + 227 * p_id) * res_mp, 965 * res_mp))
             self.gui.display.blit(ability, rect)
+
 
         # hud
         for hud_image in self.player_hud:
@@ -770,6 +944,26 @@ class BattleScene(Scene):
             rect = hud.get_rect()
             rect = rect.move((0, 0))
             self.gui.display.blit(hud, rect)
+
+        # if testing, blit a white box over abilities' spots
+        if self.testing:
+            for i in range(0, 2):
+                p_ability_background = pygame.Rect((res_mp * (34 + 1092 * i), res_mp * 864, res_mp * 750, res_mp * 172))
+                self.gui.display.fill(self.gui.colors.WHITE, p_ability_background)
+
+            # new tooltips
+            for p_id in range(0, 2):  # for players
+                if p_id == 0:
+                    p = self.p1
+                else:
+                    p = self.p2
+                self.gui.__blitText__(f"CHANGE CREATURE", 50, 456 + 1008 * p_id, 950, self.gui.colors.BLACK)
+                if not self.player_infobox_up[p_id]:
+                    self.gui.__blitText__(
+                        f"{p.creatures[(self.player_selected_creature[p_id] - 1) % p.creatures.__len__()].c.name} << {self.player_button_tips[p_id][3]}       "
+                        f"{self.player_button_tips[p_id][5]} >> {p.creatures[(self.player_selected_creature[p_id] + 1) % p.creatures.__len__()].c.name}",
+                        30,
+                        456 + 1008 * p_id, 1000, self.gui.colors.BLACK)
 
         # infobox black background, infobox images, infobox itself, \
         # infobox text, infobox selected text and infobox selected ability/status window
@@ -781,11 +975,11 @@ class BattleScene(Scene):
             else:
                 opponent = self.p1
 
-            x = self.player_selected_x[i]
-            y = self.player_selected_y[i]
+            x = self.player_selected_x[0][i]
+            y = self.player_selected_y[0][i]
             z = self.player_selected_z[i]
 
-            if self.player_infobox_up[i]:
+            if self.player_infobox_up[i] and self.player_selected_z[i] == 0:
 
                 # blit infobox black background
                 p_infobox_background = pygame.Rect((res_mp * (33 + 949 * i), res_mp * 282, res_mp * 905, res_mp * 568))
@@ -956,6 +1150,98 @@ class BattleScene(Scene):
                                                   self.gui.colors.BLACK)
                         self.gui.__blitText__(f"TYPE: {so.se.type.name}", 20, 713 + x_mod2, 823, self.gui.colors.BLACK)
 
+            elif self.player_infobox_up[i] and self.player_selected_z[i] == 1: # typebox
+                # blit typebox
+                typebox = pygame.transform.scale(self.player_typebox[i], (self.gui.DISPLAY_W, self.gui.DISPLAY_H))
+                rect = typebox.get_rect()
+                rect = rect.move((0, 0))
+                self.gui.display.blit(typebox, rect)
+
+                # non-changeable text
+                x_mod = 1407 * i
+                self.gui.__blitText__("PLAYER", 20, 142 + x_mod, 300, self.gui.colors.RED)
+                self.gui.__blitText__("CREATURE TYPES", 20, 142 + x_mod, 320, self.gui.colors.RED)
+                y_coordinate = 350
+                y_inc = 20
+                for t in p.ac.c.types:
+                    self.gui.__blitText__(f"{t.name}", 20, 142 + x_mod, y_coordinate, self.gui.colors.BLACK)
+                    y_coordinate += y_inc
+
+                self.gui.__blitText__("OPPONENT", 20, 370 + x_mod, 300, self.gui.colors.RED)
+                self.gui.__blitText__("CREATURE TYPES", 20, 370 + x_mod, 320, self.gui.colors.RED)
+                y_coordinate = 350
+                y_inc = 20
+                for t in opponent.ac.c.types:
+                    self.gui.__blitText__(f"{t.name}", 20, 370 + x_mod, y_coordinate, self.gui.colors.BLACK)
+                    y_coordinate += y_inc
+
+                self.gui.__blitText__("WEAK TO:", 20, 256 + x_mod, 536, self.gui.colors.PINK)
+                self.gui.__blitText__("1.2X DAMAGE AND STATUS FROM THIS TYPE", 16, 256 + x_mod, 556, self.gui.colors.BLACK)
+                self.gui.__blitText__("STRONG AGAINST:", 20, 256 + x_mod, 596, self.gui.colors.PINK)
+                self.gui.__blitText__("0.8X DAMAGE AND STATUS FROM THIS TYPE", 16, 256 + x_mod, 616,
+                                      self.gui.colors.BLACK)
+                self.gui.__blitText__("IMMUNE TO:", 20, 256 + x_mod, 656, self.gui.colors.PINK)
+                self.gui.__blitText__("0.0X DAMAGE AND STATUS FROM THIS TYPE", 16, 256 + x_mod, 676,
+                                      self.gui.colors.BLACK)
+
+                # type text
+                type = cr.types[self.player_selected_x[1][i]]
+                x_mod2 = 493 * i
+
+                self.gui.__blitText__(f"SELECTED TYPE: {type.name}", 20, 713 + x_mod2, 300, self.gui.colors.RED)
+                self.gui.__blitText__("TYPE RELATIONSHIPS:", 20, 713 + x_mod2, 320, self.gui.colors.RED)
+
+                x_mod2 = 493 * i
+                self.gui.__blitText__(f"< {type.name} >", 40, 713 + x_mod2, 820, type.color)
+
+                # weaknesses, resistances and immunities
+                r_index = 0
+                relationship_text = ["WEAK TO:", "STRONG AGAINST:", "IMMUNE AGAINST:"]
+                y_coordinate = 370
+                y_inc = 20
+                y_inc_2 = 30
+                ind = 0
+                text = ""
+
+                for relationship in (type.weaknesses, type.resistances, type.immunities):
+                    if relationship.__len__() > 0:
+                        self.gui.__blitText__(relationship_text[r_index], 20, 713 + x_mod2, y_coordinate, self.gui.colors.PINK)
+                        y_coordinate += y_inc_2
+                        r_index += 1
+
+                        for t in relationship:
+                            text += t.name + "; "
+                            ind += 1
+
+                            if ind >= 3:
+                                self.gui.__blitText__(f"{text}", 20, 713 + x_mod2, y_coordinate, self.gui.colors.BLACK)
+                                y_coordinate += y_inc
+                                ind = 0
+                                text = ""
+
+                        if text != "":
+                            self.gui.__blitText__(f"{text}", 20, 713 + x_mod2, y_coordinate, self.gui.colors.BLACK)
+                            y_coordinate += y_inc
+                        ind = 0
+                        text = ""
+                        y_coordinate += y_inc_2 * 2
+
+                # is this type an extinguisher?
+                self.gui.__blitText__("CAN EXTINGUISH EFFECTS?", 20, 713 + x_mod2, y_coordinate, self.gui.colors.PINK)
+                y_coordinate += y_inc_2
+                if type.isAnExtinguisher:
+                    self.gui.__blitText__("YES, MOVES OF THIS TYPE WILL", 20, 713 + x_mod2, y_coordinate,
+                                          self.gui.colors.BLACK)
+                    y_coordinate += y_inc
+                    self.gui.__blitText__("REMOVE SOME EFFECTS", 20, 713 + x_mod2, y_coordinate,
+                                          self.gui.colors.BLACK)
+                else:
+                    self.gui.__blitText__("NO, MOVES OF THIS TYPE WON'T", 20, 713 + x_mod2, y_coordinate,
+                                          self.gui.colors.BLACK)
+                    y_coordinate += y_inc
+                    self.gui.__blitText__("REMOVE ANY EFFECTS", 20, 713 + x_mod2, y_coordinate,
+                                          self.gui.colors.BLACK)
+
         # creature names and whether they are active or not
         # p1
         if self.active_player == -1 or self.active_player == 1:
@@ -980,23 +1266,24 @@ class BattleScene(Scene):
                 x = 1330
 
             # cycle through all abilities with cooldowns
-            for i in range(0, 6):
-                if p.ac.cooldowns[i] == 0 and p.ai < 0 and not self.player_infobox_up[p.id - 1]:
-                    text = self.player_button_tips[p.id - 1][i]
-                    color = self.gui.colors.BLACK
-                else:
-                    text = str(p.ac.cooldowns[i])
-                    color = self.gui.colors.LIGHT_GRAY
+            if not self.testing:
+                for i in range(0, 6):
+                    if p.ac.cooldowns[i] == 0 and p.ai < 0 and not self.player_infobox_up[p.id - 1]:
+                        text = self.player_button_tips[p.id - 1][i]
+                        color = self.gui.colors.BLACK
+                    else:
+                        text = str(p.ac.cooldowns[i])
+                        color = self.gui.colors.LIGHT_GRAY
 
-                # some variables depending on iteration
-                y = 908
-                j = i
-                if i > 2:
-                    y = 999
-                    j = i - 3
+                    # some variables depending on iteration
+                    y = 908
+                    j = i
+                    if i > 2:
+                        y = 999
+                        j = i - 3
 
-                # get the text on the board!
-                self.gui.__blitText__(text, 45, x + j * 242, y, color)
+                    # get the text on the board!
+                    self.gui.__blitText__(text, 45, x + j * 242, y, color)
 
             if p.ai < 0 and not self.player_infobox_up[p.id - 1]:
                 self.gui.__blitText__(self.player_button_tips[p.id - 1][6], 27, 847 + 227 * (p.id - 1), 890, self.gui.colors.BLACK)
@@ -1010,6 +1297,11 @@ class BattleScene(Scene):
                 self.gui.__blitText__(text_asd, 20, 323 + 1278 * (p.id - 1), 759, self.gui.colors.BLACK)
                 # tab
                 self.gui.__blitText__(self.player_button_tips[p.id - 1][6], 20, 145 + 1630 * (p.id - 1), 747, self.gui.colors.BLACK)
+                # qe
+                self.gui.__blitText__(self.player_button_tips[p.id - 1][0], 30, 133 + 1408 * (p.id - 1), 813,
+                                      self.gui.colors.BLACK)
+                self.gui.__blitText__(self.player_button_tips[p.id - 1][2], 30, 382 + 1408 * (p.id - 1), 813,
+                                      self.gui.colors.BLACK)
 
     def __animateRoll__(self, roll: int, chance: int, for_status: bool = False):
         # only animate when chances are uncertain

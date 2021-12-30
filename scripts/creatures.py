@@ -9,9 +9,11 @@ testing_wout_type = False  # testing balance w/out type relationships
 # creature's types might be different to types of moves it has
 # creature's types determine weaknesses, resistances and immunities it has
 class Type:
-
-    def __init__(self, name: str):
+    def __init__(self, name: str, color: (int, int, int)):
         self.name = name
+        self.color = color
+        # some types cannot extinguish, even though they may have types that are weak against it
+        self.isAnExtinguisher = True
         self.weaknesses = []
         self.resistances = []
         self.immunities = []
@@ -206,7 +208,7 @@ class CreatureOccurrence:
 
     # extinguishes effects
     def __checkForExtinguishing__(self, type: Type):
-        if type is not all_types["PHYSICAL"]:  # physical type does not extinguish anything
+        if type.isAnExtinguisher:  # i.e. physical type does not extinguish anything
             # extinguishing functionality
             # for element in list doesn't work here properly
             # list is dynamically modified when status is expired
@@ -309,8 +311,7 @@ class CreatureOccurrence:
                 i -= 1
                 num_of_statuses -= 1
             else:
-                print(
-                    f"Ticking status {so.se.name} (turns before expired: {so.status_d}|{so.stun_d}) for {self.c.name}...")
+                print(f"Ticking status {so.se.name} (turns before expired: {so.status_d}|{so.stun_d}) for {self.c.name}...")
                 self.bs.__animateBattleText__(f'{so.se.name} IS STILL ', f'APPLIED TO {self.c.name} ({j}/{n})')
                 so.status_d -= 1
 
@@ -468,7 +469,8 @@ class CreatureOccurrence:
                     self.bs.__animateBattleText__(f"{hit_text}")
 
                 opponent.__takeDamage__(damage)
-                opponent.__checkForExtinguishing__(move.type)
+                if hit_roll > 100 - hit_chance:
+                    opponent.__checkForExtinguishing__(move.type)
 
                 if hit_roll > 100 - hit_chance and move.status_effect is not None:
                     status_multiplier = opponent.__checkTypeRelationship__(move.status_effect.type)
@@ -503,24 +505,34 @@ class CreatureOccurrence:
 
 # dictionaries of content
 all_types = {
-    "PERMANENT": Type("PERMANENT"),
-    "FIRE": Type("FIRE"),
-    "PHYSICAL": Type("PHYSICAL"),
-    "FLYING": Type("FLYING"),
-    "ELECTRIC": Type("ELECTRIC"),
-    "WATER": Type("WATER"),
-    "PSYCHIC": Type("PSYCHIC"),
-    "GHOST": Type("GHOST"),
-    "WIND": Type("WIND"),
-    "NULLIFY": Type("NULLIFY"),
-    "VAMPIRIC": Type("VAMPIRIC"),
-    "MAGIC": Type("MAGIC"),
-    "GRASS": Type("GRASS")
+    "PERMANENT": Type("PERMANENT", (0, 0, 0)),
+    "FIRE": Type("FIRE", (255, 62, 10)),
+    "PHYSICAL": Type("PHYSICAL", (107, 115, 90)),
+    "FLYING": Type("FLYING", (47, 8, 122)),
+    "ELECTRIC": Type("ELECTRIC", (255, 228, 0)),
+    "WATER": Type("WATER", (0, 129, 255)),
+    "PSYCHIC": Type("PSYCHIC", (152, 2, 248)),
+    "GHOST": Type("GHOST", (0, 132, 112)),
+    "WIND": Type("WIND", (142, 125, 86)),
+    "NULLIFY": Type("NULLIFY", (48, 48, 48)),
+    "VAMPIRIC": Type("VAMPIRIC", (96, 0, 0)),
+    "MAGIC": Type("MAGIC", (17, 188, 212)),
+    "GRASS": Type("GRASS", (0, 255, 0))
 }
+
+# doubling information in gui.py for browsing via index
+types = []
+for t in all_types.values():
+    types.append(t)
 
 all_types["FIRE"].__addResistances__(all_types["FIRE"])
 all_types["FIRE"].__addWeakness__(all_types["WATER"])
 all_types["FIRE"].__addResistances__(all_types["GRASS"])
+
+all_types["PERMANENT"].isAnExtinguisher = False
+all_types["PHYSICAL"].isAnExtinguisher = False
+all_types["FLYING"].isAnExtinguisher = False
+all_types["VAMPIRIC"].isAnExtinguisher = False
 
 all_types["ELECTRIC"].__addResistances__(all_types["ELECTRIC"])
 all_types["ELECTRIC"].__addResistances__(all_types["WATER"])
@@ -566,9 +578,14 @@ all_types["GRASS"].__addWeakness__(all_types["NULLIFY"])
 
 all_status_effects = {
     # UNIVERSAL
-    "AI AILMENT":
-        StatusEffect(name="AI AILMENT", type=all_types["PERMANENT"], damage_low=0, damage_high=0,
-                     aim_mod=-4, defense_mod=-4, damage_mod=0, damage_mod_type=None,
+    "AI MODIFIER 1":
+        StatusEffect(name="AI MODIFIER 1", type=all_types["PERMANENT"], damage_low=0, damage_high=0,
+                     aim_mod=-3, defense_mod=-3, damage_mod=0, damage_mod_type=None,
+                     status_duration=999, stun_duration=-1,
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=0),
+    "AI MODIFIER 2":
+        StatusEffect(name="AI MODIFIER 2", type=all_types["PERMANENT"], damage_low=0, damage_high=0,
+                     aim_mod=-3, defense_mod=-3, damage_mod=0, damage_mod_type=None,
                      status_duration=999, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=0),
 
@@ -590,25 +607,25 @@ all_status_effects = {
                      thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=-20),
     "BITING FLAMES":
         StatusEffect(name="BITING FLAMES", type=all_types["FIRE"], damage_low=0, damage_high=0,
-                     aim_mod=0, defense_mod=5, damage_mod=0, damage_mod_type=None,
+                     aim_mod=0, defense_mod=10, damage_mod=0, damage_mod_type=None,
                      status_duration=0, stun_duration=-1,
-                     thorn_damage_low=20, thorn_damage_high=24, extinguish_scoring=0),
+                     thorn_damage_low=16, thorn_damage_high=20, extinguish_scoring=0),
 
     # SCHONIPS THE SHOCK SNAKE
     "ELECTRIC FORTIFICATION":
         StatusEffect(name="ELECTRIC FORTIFICATION", type=all_types["ELECTRIC"], damage_low=0, damage_high=0,
-                     aim_mod=5, defense_mod=0, damage_mod=2, damage_mod_type=None,
+                     aim_mod=0, defense_mod=0, damage_mod=1, damage_mod_type=None,
                      status_duration=4, stun_duration=-1,
-                     thorn_damage_low=3, thorn_damage_high=4, extinguish_scoring=-10),
+                     thorn_damage_low=3, thorn_damage_high=4, extinguish_scoring=-8),
     "SHOCKED":
         StatusEffect(name="SHOCKED", type=all_types["ELECTRIC"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=-5, damage_mod=-1, damage_mod_type=None,
                      status_duration=3, stun_duration=1,
                      thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=5),
     "SNAKE REGENERATION":
-        StatusEffect(name="SNAKE REGENERATION", type=all_types["PHYSICAL"], damage_low=-3, damage_high=-1,
+        StatusEffect(name="SNAKE REGENERATION", type=all_types["NULLIFY"], damage_low=-3, damage_high=-1,
                      aim_mod=0, defense_mod=5, damage_mod=0, damage_mod_type=None,
-                     status_duration=6, stun_duration=-1,
+                     status_duration=5, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=-5),
 
     # PSAWARCA THE PSYCHIC WATER ORCA
@@ -643,7 +660,7 @@ all_status_effects = {
         StatusEffect(name="NULLIFICATION", type=all_types["NULLIFY"], damage_low=0, damage_high=0,
                      aim_mod=0, defense_mod=10, damage_mod=0, damage_mod_type=None,
                      status_duration=1, stun_duration=1,
-                     thorn_damage_low=20, thorn_damage_high=28, extinguish_scoring=-5),
+                     thorn_damage_low=18, thorn_damage_high=24, extinguish_scoring=-5),
 
     # BAMAT THE LARGE MAGICAL BAT
     "VAMPIRIC PHEROMONES":
@@ -663,9 +680,9 @@ all_status_effects = {
                      thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=10),
     "MAGIC SHIELD":
         StatusEffect(name="MAGIC SHIELD", type=all_types["MAGIC"], damage_low=-2, damage_high=0,
-                     aim_mod=0, defense_mod=10, damage_mod=0, damage_mod_type=None,
-                     status_duration=4, stun_duration=-1,
-                     thorn_damage_low=0, thorn_damage_high=2, extinguish_scoring=-9),
+                     aim_mod=0, defense_mod=5, damage_mod=1, damage_mod_type=None,
+                     status_duration=3, stun_duration=-1,
+                     thorn_damage_low=0, thorn_damage_high=3, extinguish_scoring=-5),
 }
 
 all_moves = {
@@ -686,45 +703,45 @@ all_moves = {
     "DRAGON CLAW":
         Move(name="DRAGON CLAW",
              type=all_types["PHYSICAL"], speed=3, target_self=False,
-             damage_low=10, damage_high=16, aim=95, hit_attempts=1,
+             damage_low=10, damage_high=16, aim=100, hit_attempts=1,
              status_effect=None, status_chance=0, cooldown=1),
     "WARMTH":
         Move(name="WARMTH",
              type=all_types["FIRE"], speed=2, target_self=True,
              damage_low=-4, damage_high=-3, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["WARMING"], status_chance=100, cooldown=4),
+             status_effect=all_status_effects["WARMING"], status_chance=200, cooldown=4),
     "FLIGHT":
         Move(name="FLIGHT",
              type=all_types["FLYING"], speed=4, target_self=True,
              damage_low=0, damage_high=0, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["AIRBORNE"], status_chance=100, cooldown=2),
+             status_effect=all_status_effects["AIRBORNE"], status_chance=200, cooldown=3),
     "FIREWALL":
         Move(name="FIREWALL",
              type=all_types["FIRE"], speed=5, target_self=True,
              damage_low=0, damage_high=0, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["BITING FLAMES"], status_chance=100, cooldown=7),
+             status_effect=all_status_effects["BITING FLAMES"], status_chance=200, cooldown=6),
 
     # SCHONIPS THE SHOCK SNAKE
     "SNAKE BITE":
         Move(name="SNAKE BITE",
              type=all_types["PHYSICAL"], speed=5, target_self=False,
-             damage_low=10, damage_high=12, aim=115, hit_attempts=1,
+             damage_low=10, damage_high=12, aim=120, hit_attempts=1,
              status_effect=None, status_chance=0, cooldown=1),
     "ELECTRIFICATION":
         Move(name="ELECTRIFICATION",
              type=all_types["ELECTRIC"], speed=4, target_self=True,
              damage_low=0, damage_high=0, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["ELECTRIC FORTIFICATION"], status_chance=100, cooldown=2),
+             status_effect=all_status_effects["ELECTRIC FORTIFICATION"], status_chance=200, cooldown=2),
     "ELECTRIC DISCHARGE":
         Move(name="ELECTRIC DISCHARGE",
              type=all_types["ELECTRIC"], speed=2, target_self=False,
-             damage_low=4, damage_high=8, aim=80, hit_attempts=1,
+             damage_low=4, damage_high=8, aim=85, hit_attempts=1,
              status_effect=all_status_effects["SHOCKED"], status_chance=100, cooldown=6),
     "SHED SKIN":
         Move(name="SHED SKIN",
              type=all_types["PHYSICAL"], speed=1, target_self=True,
              damage_low=1, damage_high=1, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["SNAKE REGENERATION"], status_chance=100, cooldown=6),
+             status_effect=all_status_effects["SNAKE REGENERATION"], status_chance=200, cooldown=6),
     "SHOCK SCREAM":
         Move(name="SHOCK SCREAM",
              type=all_types["ELECTRIC"], speed=3, target_self=False,
@@ -750,7 +767,7 @@ all_moves = {
     "MIRACLE REGEN":
         Move(name="MIRACLE REGEN",
              type=all_types["PSYCHIC"], speed=2, target_self=True,
-             damage_low=-20, damage_high=-5, aim=200, hit_attempts=1,
+             damage_low=-20, damage_high=-10, aim=200, hit_attempts=1,
              status_effect=None, status_chance=0, cooldown=4),
     "WATER WAVE":
         Move(name="WATER WAVE",
@@ -766,7 +783,7 @@ all_moves = {
     "ESCAPE TO VOID":
         Move(name="ESCAPE TO VOID", type=all_types["GHOST"], speed=5, target_self=True,
              damage_low=-3, damage_high=-3, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["HIDDEN BY VOID"], status_chance=100, cooldown=3),
+             status_effect=all_status_effects["HIDDEN BY VOID"], status_chance=200, cooldown=3),
     "TRIP OVER":
         Move(name="TRIP OVER", type=all_types["WIND"], speed=4, target_self=False,
              damage_low=2, damage_high=6, aim=110, hit_attempts=1,
@@ -778,17 +795,17 @@ all_moves = {
     "RESET VOID":
         Move(name="RESET VOID", type=all_types["NULLIFY"], speed=5, target_self=True,
              damage_low=3, damage_high=3, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["NULLIFICATION"], status_chance=100, cooldown=5),
+             status_effect=all_status_effects["NULLIFICATION"], status_chance=200, cooldown=5),
 
     # BAMAT THE LARGE MAGICAL BAT
     "BAT BITE":
         Move(name="BAT BITE", type=all_types["PHYSICAL"], speed=2, target_self=False,
-             damage_low=12, damage_high=18, aim=85, hit_attempts=1,
+             damage_low=12, damage_high=18, aim=90, hit_attempts=1,
              status_effect=None, status_chance=0, cooldown=1),
     "DROP OF BLOOD":
         Move(name="DROP OF BLOOD", type=all_types["VAMPIRIC"], speed=5, target_self=False,
              damage_low=1, damage_high=1, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["VAMPIRIC PHEROMONES"], status_chance=100, cooldown=5),
+             status_effect=all_status_effects["VAMPIRIC PHEROMONES"], status_chance=200, cooldown=5),
     "STARVE OPPONENT":
         Move(name="STARVE OPPONENT", type=all_types["VAMPIRIC"], speed=3, target_self=False,
              damage_low=4, damage_high=4, aim=110, hit_attempts=1,
@@ -800,7 +817,7 @@ all_moves = {
     "MAGICAL REINFORCEMENT":
         Move(name="MAGICAL REINFORCEMENT", type=all_types["MAGIC"], speed=5, target_self=True,
              damage_low=0, damage_high=0, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["MAGIC SHIELD"], status_chance=100, cooldown=0),
+             status_effect=all_status_effects["MAGIC SHIELD"], status_chance=200, cooldown=0),
 
 }
 

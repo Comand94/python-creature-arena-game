@@ -1,4 +1,3 @@
-import math
 import random
 import scripts.creatures as cr
 
@@ -29,13 +28,12 @@ cr_mo_op_multiplier[0][2][2] = 0.5
 #   Reset Void can remove any status effect, but because RV is on a 6 turn cooldown and because
 #   it is a worthwhile move only when timed right before an attack, we can assume that will not
 #   happen very often
-#   for now I will settle with a multiplier of 0.4
 for i in range(0, num_of_creatures):
-    cr_mo_op_multiplier[3][4][i] = 0.4
+    cr_mo_op_multiplier[3][4][i] = 0.25
 
-# same for escape to void, but way more extreme (defense_mod of 200 makes it very appealing to AI)
+# same for escape to void, except actually worse
 for i in range(0, num_of_creatures):
-    cr_mo_op_multiplier[3][1][i] = 0.2
+    cr_mo_op_multiplier[3][1][i] = 0.15
 
 # health kit / change creature multiplier
 for i in range(0, num_of_creatures):
@@ -53,6 +51,25 @@ cr_mo_op_multiplier[1][5][2] = 0.5
 # shigowi against psawarca and vice versa
 cr_mo_op_multiplier[2][5][1] = 1.3
 cr_mo_op_multiplier[1][5][2] = 0.7
+
+# bamat might use magical reinforcement too much sometimes...
+for i in range(0, num_of_creatures):
+    cr_mo_op_multiplier[4][4][i] = 0.85
+
+# bites and claws are underappreciated by AI because of their lack of status
+for i in range(0, num_of_creatures):
+    cr_mo_op_multiplier[0][1][i] = 1.15
+    cr_mo_op_multiplier[1][0][i] = 1.10
+    cr_mo_op_multiplier[4][0][i] = 1.15
+
+# shed skin is overappreciated by AI, really
+for i in range(0, num_of_creatures):
+    cr_mo_op_multiplier[1][3][i] = 0.6
+
+# same for electrification
+for i in range(0, num_of_creatures):
+    cr_mo_op_multiplier[1][1][i] = 0.5
+
 
 # score status deadliness against opponent
 # faster = 0.5 means proc might or might not be before opponent's turn
@@ -83,8 +100,8 @@ def score_se(se: cr.StatusEffect, faster: float = 0.5,
     score += m * (se.damage_low + se.damage_high) * damage_sm * status_duration / 2 * 8 * dot_damage_worth
 
     # damage penalty
-    if se.damage_mod_type is None or target_self is True:  # relevant for sure
-        score -= m * se.damage_mod * damage_sm * status_duration * 4
+    if se.damage_mod_type is None or target_self is True:  # kind of relevant
+        score -= m * se.damage_mod * damage_sm * status_duration * 3
     else:  # affects some attacks (I wouldn't bother to check with creature type)
         score -= m * se.damage_mod * damage_sm * status_duration
 
@@ -291,8 +308,8 @@ class Player:
         self.creatures = creatures  # player's creatures
         self.ac = creatures[0]  # active creature
         self.ai = ai  # ai difficulty (-1 means Player is controlled by a human)
-        if self.ai > 5:
-            self.ai = 5
+        if self.ai > 10:
+            self.ai = 10
         # how much ai appreciates own score against enemy move score
         # 0.5 means equally, 1 means it will do a safe move, 0 means it will make a risky move half the time
         self.risk_aversion_factor = random.uniform(0.2, 0.9)
@@ -300,6 +317,8 @@ class Player:
         self.assume_blunder_factor = random.uniform(0.1, 0.8)
         # max cap for random score factor (AI can make mistakes in calculations that add randomness)
         self.random_score_factor_cap = 0.25 - float(self.ai / 20)
+        if self.random_score_factor_cap < 0:
+            self.random_score_factor_cap = 0
         # modifier larger and larger than 1 the longer the move isn't used
         # if cooldown is high, modifier increases more slowly
         self.novelty_factor = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
@@ -356,14 +375,21 @@ class Player:
     def __calculateNoveltyFactors__(self, move_roll: int):
         for ind in range(0, 6):
             if ind != move_roll:
+
+                # cap ai level
+                if self.ai > 5:
+                    ai_lvl = 5
+                else:
+                    ai_lvl = self.ai
+
                 # novelty factor grows more slowly for better ai, it impacts it's decisions less
-                increment = 0.15 - 0.005 * (self.ac.c.moves[ind].cooldown + 1) * self.ai
+                increment = 0.15 - 0.005 * (self.ac.c.moves[ind].cooldown + 1) * ai_lvl
                 if increment < 0.001:
                     increment = 0.001
                 self.novelty_factor[ind] += increment
                 # cap novelty factor lower for better ai, so it cannot overwrite better decisions as much
-                if self.novelty_factor[ind] > 1.65 - 0.1 * self.ai:
-                    self.novelty_factor[ind] = 1.65 - 0.1 * self.ai
+                if self.novelty_factor[ind] > 1.65 - 0.1 * ai_lvl:
+                    self.novelty_factor[ind] = 1.65 - 0.1 * ai_lvl
             else:
                 self.novelty_factor[ind] = 1
         print(f"p{self.id} novelty factors {self.novelty_factor}")
@@ -376,7 +402,7 @@ class Player:
             while self.ac.cooldowns[move_roll] >= 1:
                 move_roll = random.randrange(0, 6)
 
-        if self.ai > 0:  # ai calculates rewards of each move in every possible scenario
+        else:  # ai calculates rewards of each move in every possible scenario
 
             move_ai_score_sum = [0, 0, 0, 0, 0, 0]
             opponent_score_sum = [0, 0, 0, 0, 0, 0]
@@ -518,5 +544,5 @@ class Player:
             # calculate new novelty factors
             self.__calculateNoveltyFactors__(move_roll)
 
-            return move_roll, -1, ""
+        return move_roll, -1, ""
 
