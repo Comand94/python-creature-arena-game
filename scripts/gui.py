@@ -88,7 +88,6 @@ class GUI:
         before = now = self.delay_clock.tick()
         while now <= before + time:
             now += self.delay_clock.tick()
-            pygame.display.update()
 
             if self.paused: # pause the delay
                 dt = 0
@@ -198,6 +197,7 @@ class GUI:
         self.display_paused.set_alpha(200)
         self.window.blit(self.display_paused, (0, 0))
         y_mod = 80
+        self.display_paused_text.fill(self.colors.BLACK) # remove old things from this display when coupled with colorkey line below
         self.__blitText__("PAUSED", 120, 960, 300 + y_mod, self.colors.RED, self.display_paused_text)
         self.__blitText__("THE GAME WAS PAUSED", 60, 960, 420 + y_mod, self.colors.WHITE, self.display_paused_text)
         self.__blitText__("ESC/BACKSPACE - UNPAUSE", 60, 960, 480 + y_mod, self.colors.WHITE, self.display_paused_text)
@@ -219,7 +219,7 @@ class Scene:
         self.color_text_grayed_out = self.gui.colors.GRAY
         self.color_text_selected = self.gui.colors.GREEN
 
-    def __cycleSprites__(self):
+    def __cyclePrimarySprites__(self):
         pass
 
     def __blitPrimarySprites__(self):
@@ -511,13 +511,14 @@ class BattleScene(Scene):
                 self.animation_now[p_id] = self.animation_before[p_id] = self.animation_clock[p_id].tick()
             self.battle = sb.Battle(self, p1, p2)
 
-    def __cycleSprites__(self):
+    def __cyclePrimarySprites__(self):
         # for each player
         for p_id in (0, 1):
             self.animation_now[p_id] += self.animation_clock[p_id].tick() # clock goes tick-tock
 
             # should you cycle? with minimal random time to spice things up
-            if self.animation_now[p_id] > self.animation_before[p_id] + random.randrange(400, 500):
+            random_time = random.randrange(100, 200)
+            if self.animation_now[p_id] > self.animation_before[p_id] + random_time:
 
                 # constraints
                 if not self.creature_idle_images_reverse[p_id] and self.creature_idle_images_index[p_id] + 1 >= self.creature_idle_images[0].__len__():
@@ -534,13 +535,11 @@ class BattleScene(Scene):
                 # new time
                 self.animation_now[p_id] = self.animation_before[p_id] = self.animation_clock[p_id].tick()
 
-    # animates creatures and shows textbox over them if needed
+    # blits creatures and shows textbox over them if needed
     def __blitPrimarySprites__(self):
         # resolution scaling multiplier
         res_mp = self.gui.DISPLAY_W / 1920
 
-        # cycle sprites
-        self.__cycleSprites__()
         for p_id in (0, 1):
             image = self.creature_idle_images[p_id][self.creature_idle_images_index[p_id]]
             rect = image.get_rect()

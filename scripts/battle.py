@@ -133,12 +133,24 @@ class Battle:
             if self.p2.ac.isStunned:
                 p2_move_roll = -2
 
+            # reset creature sprite timers
+            for p_id in (0, 1):
+                self.bs.animation_now[p_id] = self.bs.animation_before[p_id] = self.bs.animation_clock[p_id].tick()
+
+            delay_iterator = 0
+
             # pre-turn phase: get moves
-            while p1_move_roll == -1 or p2_move_roll == -1:
+            while delay_iterator < 60 or p1_move_roll == -1 or p2_move_roll == -1:
+                # special delay for ai games and for after the moves are chosen in general (removed delay further down in code)
+                if p1_move_roll != -1 and p2_move_roll != -1:
+                    delay_iterator += 1
+                    self.bs.gui.__delay__(50)
+
                 self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
                 self.bs.__blitHealth__()
                 self.bs.__blitModifiers__()
                 self.bs.__blitReadiness__(p1_move_roll, p2_move_roll)
+                self.bs.__cyclePrimarySprites__()
                 self.bs.__blitHUD__()
                 self.bs.gui.__blitScreen__()
                 if self.bs.gui.return_to_menu:
@@ -153,17 +165,6 @@ class Battle:
                     print(f"{self.p2.ac.c.name} rolled {p2_move_roll}, cooldown: {self.p2.ac.cooldowns[p2_move_roll]}")
 
                 p1_move_roll, p2_move_roll = self.bs.__updateSelected__([p1_move_roll, p2_move_roll])
-
-            self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
-            self.bs.__blitHealth__()
-            self.bs.__blitModifiers__()
-            self.bs.__blitReadiness__(p1_move_roll, p2_move_roll)
-            self.bs.__blitHUD__()
-            self.bs.gui.__blitScreen__()
-            if self.bs.gui.return_to_menu:
-                return
-
-            self.bs.gui.__delay__(1000)
 
             print(f"\n(SOT) Player 1 health: {self.p1.ac.health}\n      Player 2 health: {self.p2.ac.health}")
 
