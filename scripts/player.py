@@ -41,16 +41,16 @@ for i in range(0, num_of_creatures):
         cr_mo_op_multiplier[i][5][j] = 1
 
 # fragonire against psawarca and vice versa
-cr_mo_op_multiplier[0][5][2] = 1.5
-cr_mo_op_multiplier[2][5][0] = 0.5
+#cr_mo_op_multiplier[0][5][2] = 1.5
+#cr_mo_op_multiplier[2][5][0] = 0.5
 
 # psawarca against schonips and vice versa
-cr_mo_op_multiplier[2][5][1] = 1.5
-cr_mo_op_multiplier[1][5][2] = 0.5
+#cr_mo_op_multiplier[2][5][1] = 1.5
+#cr_mo_op_multiplier[1][5][2] = 0.5
 
 # shigowi against psawarca and vice versa
-cr_mo_op_multiplier[2][5][1] = 1.3
-cr_mo_op_multiplier[1][5][2] = 0.7
+#cr_mo_op_multiplier[2][5][1] = 1.3
+#cr_mo_op_multiplier[1][5][2] = 0.7
 
 # bamat might use magical reinforcement too much sometimes...
 for i in range(0, num_of_creatures):
@@ -58,17 +58,26 @@ for i in range(0, num_of_creatures):
 
 # bites and claws are underappreciated by AI because of their lack of status
 for i in range(0, num_of_creatures):
-    cr_mo_op_multiplier[0][1][i] = 1.15
-    cr_mo_op_multiplier[1][0][i] = 1.10
-    cr_mo_op_multiplier[4][0][i] = 1.15
+    cr_mo_op_multiplier[0][1][i] = 1.2
+    cr_mo_op_multiplier[1][0][i] = 1.1
+    cr_mo_op_multiplier[4][0][i] = 1.2
+
+# physical attack bonus against bamat
+    cr_mo_op_multiplier[0][1][4] = 1.5
+    cr_mo_op_multiplier[1][0][4] = 1.2
+    cr_mo_op_multiplier[4][0][4] = 1.3
+
+# warmth is slightly overappreciated by ai
+for i in range(0, num_of_creatures):
+    cr_mo_op_multiplier[0][2][i] = 0.9
 
 # shed skin is overappreciated by AI, really
 for i in range(0, num_of_creatures):
-    cr_mo_op_multiplier[1][3][i] = 0.6
+    cr_mo_op_multiplier[1][3][i] = 0.7
 
 # same for electrification
 for i in range(0, num_of_creatures):
-    cr_mo_op_multiplier[1][1][i] = 0.5
+    cr_mo_op_multiplier[1][1][i] = 0.8
 
 
 # score status deadliness against opponent

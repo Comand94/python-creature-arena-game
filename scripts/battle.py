@@ -11,6 +11,7 @@ class Battle:
         self.p1 = p1
         self.p2 = p2
         self.bs = battle_scene
+        self.turn_counter = 1
         self.__startBattle__()
 
     def __applyAIModifier__(self, p: pl.Player):
@@ -85,7 +86,7 @@ class Battle:
 
         print("\nFIGHT!")
 
-        self.bs.__updateAbilityImages__()
+        self.bs.__updateCreatureImages__()
 
         p1_move_count = [0, 0, 0, 0, 0, 0]
         p2_move_count = [0, 0, 0, 0, 0, 0]
@@ -124,7 +125,7 @@ class Battle:
             # update status images for infobox
             self.bs.__updateStatusImages__()
 
-            self.bs.gui.__delay__(3000)
+            self.bs.gui.__delay__(1000)
 
             # special colors and behaviour for stunned
             if self.p1.ac.isStunned:
@@ -162,7 +163,7 @@ class Battle:
             if self.bs.gui.return_to_menu:
                 return
 
-            self.bs.gui.__delay__(3000)
+            self.bs.gui.__delay__(1000)
 
             print(f"\n(SOT) Player 1 health: {self.p1.ac.health}\n      Player 2 health: {self.p2.ac.health}")
 
@@ -198,7 +199,7 @@ class Battle:
                 self.bs.__animateMovePriority__(p1_move_speed, p2_move_speed, moves_first)
 
             if self.p1.ac.isStunned:
-                self.bs.gui.__delay__(1000)
+                self.bs.gui.__delay__(500)
 
                 self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
                 self.bs.__blitHealth__()
@@ -216,7 +217,7 @@ class Battle:
                 print("Player 1 is stunned and skips the turn!")
 
             if self.p2.ac.isStunned:
-                self.bs.gui.__delay__(1000)
+                self.bs.gui.__delay__(500)
 
                 self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
                 self.bs.__blitHealth__()
@@ -235,7 +236,7 @@ class Battle:
 
             # moves
             if moves_first == 2:
-                self.bs.gui.__delay__(1000)
+                self.bs.gui.__delay__(500)
 
                 # mark beginning of turn
                 self.bs.active_player = 2
@@ -252,7 +253,7 @@ class Battle:
 
             if moves_first == 1 or moves_second == 1:
 
-                self.bs.gui.__delay__(1000)
+                self.bs.gui.__delay__(500)
 
                 # mark beginning of turn
                 self.bs.active_player = 1
@@ -281,7 +282,7 @@ class Battle:
 
             if moves_second == 2:
 
-                self.bs.gui.__delay__(1000)
+                self.bs.gui.__delay__(500)
 
                 # mark beginning of turn
                 self.bs.active_player = 2
@@ -308,7 +309,7 @@ class Battle:
                     if self.p1.ai >= 0:
                         self.p1.risk_evaluation(p2_assumed, self.p2.ac.c.moves[p2_assumed].name, p2_move_roll, p2_assumed_mode)
 
-            self.bs.gui.__delay__(1000)
+            self.bs.gui.__delay__(500)
 
             print(f"(EOT) Player 1 health: {self.p1.ac.health}\n      Player 2 health: {self.p2.ac.health}")
 
@@ -319,7 +320,7 @@ class Battle:
             if self.bs.gui.return_to_menu:
                 return
 
-            self.bs.gui.__delay__(1000)
+            self.bs.gui.__delay__(500)
 
         if self.p1.ac.health <= 0 and self.p2.ac.health > 0:
             print("\nPLAYER 2 WINS!")
