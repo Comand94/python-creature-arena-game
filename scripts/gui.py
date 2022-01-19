@@ -234,33 +234,36 @@ class Scene:
 class MatchSettingsScene(Scene):
     def __init__(self, gui):
         Scene.__init__(self, gui)
-        self.text = ['START MATCH', 'PLAYER', 'CREATURE']
-        self.text_offset_mp = [-150, 100, 200]
+        self.text = ['START MATCH', 'PLAYER', 'CREATURE 1', 'CREATURE 2', 'CREATURE 3']
+        self.text_offset_mp = [-150, 100, 200, 300, 400]
         self.selected_x = 0
         self.selected_y = 0
         self.max_x = 1
-        self.max_y = 3
+        self.max_y = 5
         self.player_ai = [-1, -1]
-        self.player_creature = [-1, -1]
+        self.player_creature = [[-1, -2, -2], [-1, -2, -2]]
 
     def __updateSelected__(self):
         for k in self.gui.keys.keys_down:
             if k == self.gui.keys.ENTER or k == self.gui.keys.CONFIRM[0] or k == self.gui.keys.CONFIRM[1]:
                 if self.selected_y == 0: # start game with current settings
-                    player1_creatures = player2_creatures = []
+                    player1_creatures = []
+                    player2_creatures = []
 
-                    if self.player_creature[0] == -1:
-                        p1_creature_index = random.randrange(0, cr.all_creatures.__len__())
-                    else:
-                        p1_creature_index = self.player_creature[0]
+                    for x in (0, 1, 2):
+                        if self.player_creature[0][x] != -2:
+                            if self.player_creature[0][x] == -1:
+                                p1_creature_index = random.randrange(0, cr.all_creatures.__len__())
+                            else:
+                                p1_creature_index = self.player_creature[0][x]
+                            player1_creatures.append(cr.CreatureOccurrence(cr.all_creatures[p1_creature_index]))
 
-                    if self.player_creature[1] == -1:
-                        p2_creature_index = random.randrange(0, cr.all_creatures.__len__())
-                    else:
-                        p2_creature_index = self.player_creature[1]
-
-                    player1_creatures.append(cr.CreatureOccurrence(cr.all_creatures[p1_creature_index]))
-                    player2_creatures.append(cr.CreatureOccurrence(cr.all_creatures[p2_creature_index]))
+                        if self.player_creature[1][x] != -2:
+                            if self.player_creature[1][x] == -1:
+                                p2_creature_index = random.randrange(0, cr.all_creatures.__len__())
+                            else:
+                                p2_creature_index = self.player_creature[0][x]
+                            player2_creatures.append(cr.CreatureOccurrence(cr.all_creatures[p2_creature_index]))
 
                     player1 = pl.Player(1, player1_creatures, self.player_ai[0])
                     player2 = pl.Player(2, player2_creatures, self.player_ai[1])
@@ -279,27 +282,27 @@ class MatchSettingsScene(Scene):
                     self.player_ai[0] += 1
                     if self.player_ai[0] > 10:
                         self.player_ai[0] = -1
-                elif self.selected_y == 2: # creature
-                    self.player_creature[0] += 1
-                    if self.player_creature[0] >= cr.all_creatures.__len__():
-                        self.player_creature[0] = -1
+                elif self.selected_y >= 2: # creature
+                    self.player_creature[0][self.selected_y - 2] += 1
+                    if self.player_creature[0][self.selected_y - 2] >= cr.all_creatures.__len__():
+                        self.player_creature[0][self.selected_y - 2] = -2
 
             if k == self.gui.keys.RIGHT or k == self.gui.keys.D[0] or k == self.gui.keys.D[1]: # change right side
                 if self.selected_y == 1: # ai
                     self.player_ai[1] += 1
                     if self.player_ai[1] > 10:
                         self.player_ai[1] = -1
-                elif self.selected_y == 2: # creature
-                    self.player_creature[1] += 1
-                    if self.player_creature[1] >= cr.all_creatures.__len__():
-                        self.player_creature[1] = -1
+                elif self.selected_y >= 2: # creature
+                    self.player_creature[1][self.selected_y - 2] += 1
+                    if self.player_creature[1][self.selected_y - 2] >= cr.all_creatures.__len__():
+                        self.player_creature[1][self.selected_y - 2] = -2
 
     def __displayScene__(self):
         while self.run_display:
             self.gui.return_to_menu = False
             self.gui.display.fill(self.gui.colors.GRAY)
             self.__updateSelected__()
-            for i in range(0, 3):
+            for i in range(0, 5):
                 if i == self.selected_y:
                     color = self.color_text_selected
                 else:
@@ -308,7 +311,7 @@ class MatchSettingsScene(Scene):
                 text_size_2 = 30
                 text_size_3 = 90
                 text_x = 960
-                text_y = 440
+                text_y = 300
 
                 if i == 0:
                     size = text_size_3
@@ -337,32 +340,40 @@ class MatchSettingsScene(Scene):
                     self.gui.__blitText__(player_text, text_size_2, text_x + 400,
                                             text_y + self.text_offset_mp[i], self.gui.colors.BLEEDING_WHITE)
 
-                elif i == 2:
-                    if self.player_creature[0] == -1:
+                elif i >= 2:
+                    if self.player_creature[0][i-2] == -2:
+                        p1_creature_name = "NONE"
+                        p1_creature_description = "NO CREATURE IN THE FIRST SLOT"
+                    elif self.player_creature[0][i-2] == -1:
                         p1_creature_name = "? ? ?"
                         p1_creature_description = "UNKNOWN CHALLENGER"
                     else:
-                        p1_creature_name = cr.all_creatures[self.player_creature[0]].name
-                        p1_creature_description = cr.all_creatures[self.player_creature[0]].desc
+                        p1_creature_name = cr.all_creatures[self.player_creature[0][i-2]].name
+                        p1_creature_description = cr.all_creatures[self.player_creature[0][i-2]].desc
 
-                    if self.player_creature[1] == -1:
+                    if self.player_creature[1][i-2] == -2:
+                        p2_creature_name = "NONE"
+                        p2_creature_description = "NO CREATURE IN THE FIRST SLOT"
+                    elif self.player_creature[1][i-2] == -1:
                         p2_creature_name = "? ? ?"
                         p2_creature_description = "UNKNOWN CHALLENGER"
                     else:
-                        p2_creature_name = cr.all_creatures[self.player_creature[1]].name
-                        p2_creature_description = cr.all_creatures[self.player_creature[1]].desc
+                        p2_creature_name = cr.all_creatures[self.player_creature[1][i-2]].name
+                        p2_creature_description = cr.all_creatures[self.player_creature[1][i-2]].desc
 
                     self.gui.__blitText__(p1_creature_name, text_size_2, text_x - 400,
                                           text_y + self.text_offset_mp[i], self.gui.colors.CYANISH_WHITE)
                     self.gui.__blitText__(p2_creature_name, text_size_2, text_x + 400,
                                           text_y + self.text_offset_mp[i], self.gui.colors.BLEEDING_WHITE)
 
-                    self.gui.__blitText__(p1_creature_description, text_size_2, text_x,
-                                          text_y + self.text_offset_mp[i] + 200, self.gui.colors.CYANISH_WHITE)
-                    self.gui.__blitText__("-- VS --", text_size, text_x,
-                                          text_y + self.text_offset_mp[i] + 260, self.gui.colors.WHITE)
-                    self.gui.__blitText__(p2_creature_description, text_size_2, text_x,
-                                          text_y + self.text_offset_mp[i] + 320, self.gui.colors.BLEEDING_WHITE)
+                    if i == 2:
+                        self.gui.__blitText__(p1_creature_description, text_size_2, text_x,
+                                              text_y + self.text_offset_mp[i] + 350, self.gui.colors.CYANISH_WHITE)
+                        self.gui.__blitText__("--- VS ---", text_size, text_x,
+                                              text_y + self.text_offset_mp[i] + 410, self.gui.colors.WHITE)
+                        self.gui.__blitText__(p2_creature_description, text_size_2, text_x,
+                                              text_y + self.text_offset_mp[i] + 470, self.gui.colors.BLEEDING_WHITE)
+
 
             self.gui.__blitScreen__()
 

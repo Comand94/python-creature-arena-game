@@ -69,7 +69,7 @@ class Battle:
         c: cr.CreatureOccurrence
         for c in self.p1.creatures:
             print(f"{i}. {c.c.name}")
-        self.p1.ac = self.p1.creatures.__getitem__(0)
+        self.p1.ac = self.p1.creatures[0]
         print(f"\nPlayer 1 chose {self.p1.ac.c.name}!")
 
         self.p1.ac.__joinBattleScene__(self.bs)
@@ -79,7 +79,7 @@ class Battle:
         c: cr.CreatureOccurrence
         for c in self.p2.creatures:
             print(f"{i}. {c.c.name}")
-        self.p2.ac = self.p2.creatures.__getitem__(1)
+        self.p2.ac = self.p2.creatures[0]
         print(f"\nPlayer 2 chose {self.p2.ac.c.name}!")
 
         self.p2.ac.__joinBattleScene__(self.bs)
@@ -87,6 +87,11 @@ class Battle:
         print("\nFIGHT!")
 
         self.bs.__updateCreatureImages__()
+
+        self.bs.__animateTextbox__(True)
+        self.bs.__animateBattleText__(f"{self.p1.ac.c.name} JOINS THE BATTLE!")
+        self.bs.__animateBattleText__(f"{self.p2.ac.c.name} JOINS THE BATTLE!")
+        self.bs.__animateTextbox__(False)
 
         p1_move_count = [0, 0, 0, 0, 0, 0]
         p2_move_count = [0, 0, 0, 0, 0, 0]
@@ -322,6 +327,30 @@ class Battle:
                 return
 
             self.bs.gui.__delay__(500)
+
+            if self.p1.ac.health <= 0:
+                self.bs.__animateTextbox__(True)
+                self.bs.__animateBattleText__(f"{self.p1.ac.c.name} FAINTED!")
+                if  self.p1.creatures.__len__() > (self.p1.ac_index + 1) is not None:
+                    self.p1.ac_index += 1
+                    self.p1.ac = self.p1.creatures[self.p1.ac_index]
+                    self.p1.ac.__joinBattleScene__(self.bs)
+                    self.bs.__updateCreatureImages__()
+                    self.bs.__animateBattleText__(f"{self.p1.ac.c.name} JOINS THE BATTLE!")
+                    print("switch p1")
+                self.bs.__animateTextbox__(False)
+
+            if self.p2.ac.health <= 0:
+                self.bs.__animateTextbox__(True)
+                self.bs.__animateBattleText__(f"{self.p2.ac.c.name} FAINTED!")
+                if self.p2.creatures.__len__() > (self.p2.ac_index + 1) is not None:
+                    self.p2.ac_index += 1
+                    self.p2.ac = self.p2.creatures[self.p2.ac_index]
+                    self.p2.ac.__joinBattleScene__(self.bs)
+                    self.bs.__updateCreatureImages__()
+                    self.bs.__animateBattleText__(f"{self.p2.ac.c.name} JOINS THE BATTLE!")
+                    print("switch p2")
+                self.bs.__animateTextbox__(False)
 
         if self.p1.ac.health <= 0 and self.p2.ac.health > 0:
             print("\nPLAYER 2 WINS!")
