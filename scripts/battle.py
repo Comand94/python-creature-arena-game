@@ -19,7 +19,8 @@ class Battle:
         health_penalty_mult = range_top - 1
         if health_penalty_mult < 0:
             health_penalty_mult = 0
-        p.ac.health -= math.ceil(0.04 * p.ac.c.health * health_penalty_mult)
+        for co in p.creatures:
+            co.health -= math.ceil(0.04 * p.ac.c.health * health_penalty_mult)
 
         # modify ai damage for different difficulties
         if range_top > 3:
@@ -50,17 +51,18 @@ class Battle:
             ai_hp_regen = 0
 
         if p.id == 1:
-            cr.all_status_effects["AI MODIFIER 1"].defense_mod = cr.all_status_effects[
-                "AI MODIFIER 1"].aim_mod = ai_stat_mod
+            cr.all_status_effects["AI MODIFIER 1"].defense_mod = cr.all_status_effects["AI MODIFIER 1"].aim_mod = ai_stat_mod
             cr.all_status_effects["AI MODIFIER 1"].damage_mod = ai_damage_mod
             cr.all_status_effects["AI MODIFIER 1"].damage_low = -ai_hp_regen
-            p.ac.active_statuses.append(cr.StatusOccurrence(cr.all_status_effects["AI MODIFIER 1"]))
+            for co in p.creatures:
+                co.active_statuses.append(cr.StatusOccurrence(cr.all_status_effects["AI MODIFIER 1"]))
         else:
             cr.all_status_effects["AI MODIFIER 2"].defense_mod = cr.all_status_effects[
                 "AI MODIFIER 2"].aim_mod = ai_stat_mod
             cr.all_status_effects["AI MODIFIER 2"].damage_mod = ai_damage_mod
             cr.all_status_effects["AI MODIFIER 2"].damage_low = -ai_hp_regen
-            p.ac.active_statuses.append(cr.StatusOccurrence(cr.all_status_effects["AI MODIFIER 2"]))
+            for co in p.creatures:
+                co.active_statuses.append(cr.StatusOccurrence(cr.all_status_effects["AI MODIFIER 2"]))
 
     def __startBattle__(self):
 
