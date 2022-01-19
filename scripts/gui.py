@@ -689,6 +689,7 @@ class BattleScene(Scene):
                 self.gui.display.fill(self.background_color)
                 self.__blitHealth__()
                 self.__blitModifiers__()
+                self.__cyclePrimarySprites__()
                 self.__blitHUD__()
                 self.gui.__blitScreen__()
                 if self.gui.return_to_menu:
