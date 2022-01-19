@@ -838,29 +838,29 @@ all_moves = {
 
 all_creatures = [
 
-        Creature(id=0, name="FRAGONIRE", desc="The Fire Dragon Fragonire",
+        Creature(id=0, name="FRAGONIRE", desc="The Mighty Fire Dragon Fragonire",
                  health=60, defense=0, move1=all_moves["FIRE BREATH"], move2=all_moves["DRAGON CLAW"],
                  move3=all_moves["WARMTH"], move4=all_moves["FLIGHT"], move5=all_moves["FIREWALL"],
                  types=(all_types["FIRE"], all_types["PHYSICAL"])),
 
-        Creature(id=1, name="SCHONIPS", desc="The Shock Snake Schonips",
+        Creature(id=1, name="SCHONIPS", desc="The Agile Shock Snake Schonips",
                  health=45, defense=20, move1=all_moves["SNAKE BITE"], move2=all_moves["ELECTRIFICATION"],
                  move3=all_moves["ELECTRIC DISCHARGE"], move4=all_moves["SHED SKIN"], move5=all_moves["SHOCK SCREAM"],
                  types=(all_types["ELECTRIC"], all_types["PHYSICAL"])),
 
-        Creature(id=2, name="PSAWARCA", desc="The Psychic Water Orca Psawarca",
+        Creature(id=2, name="PSAWARCA", desc="The Psychic Water-Bending Orca Psawarca",
                  health=65, defense=0, move1=all_moves["PSYCHIC CHALLENGE"], move2=all_moves["WATER CANNON"],
                  move3=all_moves["ILLUSORY SHIELDING"], move4=all_moves["MIRACLE REGEN"], move5=all_moves["WATER WAVE"],
                  types=(all_types["PSYCHIC"], all_types["WATER"], all_types["PHYSICAL"])),
 
 
-        Creature(id=3, name="SHIGOWI", desc="The Wind Shapeshifter Shigowi",
+        Creature(id=3, name="SHIGOWI", desc="The Ghost of Wind Shapeshifter Shigowi",
                  health=35, defense=25, move1=all_moves["PHANTOM JAVELINS"], move2=all_moves["ESCAPE TO VOID"],
                  move3=all_moves["TRIP OVER"], move4=all_moves["HURRICANE"], move5=all_moves["RESET VOID"],
                  types=(all_types["GHOST"], all_types["WIND"])),
 
 
-        Creature(id=4, name="BAMAT", desc="The Large Magical Bat Bamat",
+        Creature(id=4, name="BAMAT", desc="The Large Magical Amputee Bat Bamat",
                  health=70, defense=-10, move1=all_moves["BAT BITE"], move2=all_moves["DROP OF BLOOD"],
                  move3=all_moves["STARVE OPPONENT"], move4=all_moves["BLINDING LIGHT"],
                  move5=all_moves["MAGICAL REINFORCEMENT"],

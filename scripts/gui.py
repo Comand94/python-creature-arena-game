@@ -308,7 +308,7 @@ class MatchSettingsScene(Scene):
                 text_size_2 = 30
                 text_size_3 = 90
                 text_x = 960
-                text_y = 540
+                text_y = 440
 
                 if i == 0:
                     size = text_size_3
@@ -340,18 +340,29 @@ class MatchSettingsScene(Scene):
                 elif i == 2:
                     if self.player_creature[0] == -1:
                         p1_creature_name = "? ? ?"
+                        p1_creature_description = "UNKNOWN CHALLENGER"
                     else:
                         p1_creature_name = cr.all_creatures[self.player_creature[0]].name
+                        p1_creature_description = cr.all_creatures[self.player_creature[0]].desc
 
                     if self.player_creature[1] == -1:
                         p2_creature_name = "? ? ?"
+                        p2_creature_description = "UNKNOWN CHALLENGER"
                     else:
                         p2_creature_name = cr.all_creatures[self.player_creature[1]].name
+                        p2_creature_description = cr.all_creatures[self.player_creature[1]].desc
 
                     self.gui.__blitText__(p1_creature_name, text_size_2, text_x - 400,
                                           text_y + self.text_offset_mp[i], self.gui.colors.CYANISH_WHITE)
                     self.gui.__blitText__(p2_creature_name, text_size_2, text_x + 400,
                                           text_y + self.text_offset_mp[i], self.gui.colors.BLEEDING_WHITE)
+
+                    self.gui.__blitText__(p1_creature_description, text_size_2, text_x,
+                                          text_y + self.text_offset_mp[i] + 200, self.gui.colors.CYANISH_WHITE)
+                    self.gui.__blitText__("-- VS --", text_size, text_x,
+                                          text_y + self.text_offset_mp[i] + 260, self.gui.colors.WHITE)
+                    self.gui.__blitText__(p2_creature_description, text_size_2, text_x,
+                                          text_y + self.text_offset_mp[i] + 320, self.gui.colors.BLEEDING_WHITE)
 
             self.gui.__blitScreen__()
 
@@ -1340,7 +1351,7 @@ class BattleScene(Scene):
                 # non-changeable text
                 x_mod = 1407 * i
                 self.gui.__blitText__("PLAYER", 20, 142 + x_mod, 300, self.gui.colors.RED)
-                self.gui.__blitText__("CREATURE TYPES", 20, 142 + x_mod, 320, self.gui.colors.RED)
+                self.gui.__blitText__("TYPES", 20, 142 + x_mod, 320, self.gui.colors.RED)
                 y_coordinate = 350
                 y_inc = 20
                 for t in p.ac.c.types:
@@ -1348,7 +1359,7 @@ class BattleScene(Scene):
                     y_coordinate += y_inc
 
                 self.gui.__blitText__("OPPONENT", 20, 370 + x_mod, 300, self.gui.colors.RED)
-                self.gui.__blitText__("CREATURE TYPES", 20, 370 + x_mod, 320, self.gui.colors.RED)
+                self.gui.__blitText__("TYPES", 20, 370 + x_mod, 320, self.gui.colors.RED)
                 y_coordinate = 350
                 y_inc = 20
                 for t in opponent.ac.c.types:
@@ -1360,7 +1371,7 @@ class BattleScene(Scene):
                 self.gui.__blitText__("STRONG AGAINST:", 20, 256 + x_mod, 596, self.gui.colors.PINK)
                 self.gui.__blitText__("0.8X DAMAGE AND STATUS FROM THIS TYPE", 16, 256 + x_mod, 616,
                                       self.gui.colors.BLACK)
-                self.gui.__blitText__("IMMUNE TO:", 20, 256 + x_mod, 656, self.gui.colors.PINK)
+                self.gui.__blitText__("IMMUNE AGAINST:", 20, 256 + x_mod, 656, self.gui.colors.PINK)
                 self.gui.__blitText__("0.0X DAMAGE AND STATUS FROM THIS TYPE", 16, 256 + x_mod, 676,
                                       self.gui.colors.BLACK)
 
@@ -1387,7 +1398,6 @@ class BattleScene(Scene):
                     if relationship.__len__() > 0:
                         self.gui.__blitText__(relationship_text[r_index], 20, 713 + x_mod2, y_coordinate, self.gui.colors.PINK)
                         y_coordinate += y_inc_2
-                        r_index += 1
 
                         for t in relationship:
                             text += t.name + "; "
@@ -1405,6 +1415,7 @@ class BattleScene(Scene):
                         ind = 0
                         text = ""
                         y_coordinate += y_inc_2 * 2
+                    r_index += 1
 
                 # is this type an extinguisher?
                 self.gui.__blitText__("CAN EXTINGUISH EFFECTS?", 20, 713 + x_mod2, y_coordinate, self.gui.colors.PINK)
