@@ -1808,8 +1808,9 @@ class BattleScene(Scene):
             if not self.player_infobox_up[i]:  # rage counter
                 if p.ai < 0 and p.ac.rage >= p.ac.c.moves[6].rage_cost:
                     rage_info = f'PRESS "{self.player_button_tips[i][7]}" TO USE "{p.ac.c.moves[6].name}" FOR {p.ac.c.moves[6].rage_cost} RAGE POINTS ({p.ac.rage}/{p.ac.c.rage})'
-                    self.gui.__blitText__(rage_info, 20, 480 + 960 * i, 820,
-                                          self.gui.colors.WHITE)
+
                 else:
-                    self.gui.__blitText__(f"RAGE ({p.ac.rage}/{p.ac.c.rage})", 30, 480 + 960 * i, 819,
-                                          self.gui.colors.WHITE)
+                    rage_info = f'MOVE "{p.ac.c.moves[6].name}" REQUIRES {p.ac.c.moves[6].rage_cost} RAGE POINTS ({p.ac.rage}/{p.ac.c.rage})'
+
+                self.gui.__blitText__(rage_info, 23, 480 + 960 * i, 819,
+                                    self.gui.colors.WHITE)

@@ -363,7 +363,7 @@ class Player:
                         self.assume_blunder_factor = 0.8
             elif op_assumed != -1: # it was incorrect
                 text[2] = f"PLAYER {self.id} WAS WRONG!"
-                text[3] = "fBEHAVIOUR PUNISHED!"
+                text[3] = "BEHAVIOUR PUNISHED!"
 
                 if counter_mode == "c": # aversion increases doubly
                     self.risk_aversion_factor += 0.2
@@ -409,7 +409,7 @@ class Player:
     def __calculateMove__(self, opponent: cr.CreatureOccurrence) -> (int, int, str):
         if self.ai <= 0:  # dumb ai makes random moves
             move_roll = random.randrange(0, 7)
-            while self.ac.cooldowns[move_roll] >= 1 and self.ac.rage >= self.ac.c.moves[move_roll].rage_cost:
+            while self.ac.cooldowns[move_roll] >= 1 or self.ac.rage < self.ac.c.moves[move_roll].rage_cost:
                 move_roll = random.randrange(0, 7)
 
         else:  # ai calculates rewards of each move in every possible scenario
@@ -439,7 +439,7 @@ class Player:
                 if self.ac.cooldowns[ami] <= 0 and self.ac.rage >= self.ac.c.moves[ami].rage_cost:  # ai move to take into account
                     omi = 0
                     while omi < 7:
-                        if opponent.cooldowns[omi] <= 0 and opponent.rage >= opponent.c.moves[ami].rage_cost:  # opponent move to take into account
+                        if opponent.cooldowns[omi] <= 0 and opponent.rage >= opponent.c.moves[omi].rage_cost:  # opponent move to take into account
 
                             # calculate move score for moves in pairs
                             a, b = score_move([self.ac, opponent], [ami, omi])

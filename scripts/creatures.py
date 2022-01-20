@@ -683,8 +683,8 @@ all_status_effects = {
                      thorn_damage_low=2, thorn_damage_high=3, extinguish_scoring=-10),
     "CONTROL":
         StatusEffect(name="CONTROL", type=all_types["PSYCHIC"], damage_low=0, damage_high=0,
-                     aim_mod=0, defense_mod=-10, damage_mod=0, damage_mod_type=None,
-                     status_duration=2, stun_duration=2,
+                     aim_mod=0, defense_mod=-20, damage_mod=0, damage_mod_type=None,
+                     status_duration=1, stun_duration=1,
                      thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=10),
 
     # SHIGOWI THE WIND SHAPESHIFTER
@@ -765,7 +765,7 @@ all_moves = {
     "CLEANSING FLAMES":
         Move(name="CLEANSING FLAMES",
              type=all_types["FIRE"], speed=2, target_self=False,
-             damage_low=8, damage_high=16, aim=110, hit_attempts=1,
+             damage_low=8, damage_high=16, aim=120, hit_attempts=1,
              status_effect=all_status_effects["BURNING"], status_chance=100, rage_cost=30),
 
     # SCHONIPS THE SHOCK SNAKE
@@ -805,7 +805,7 @@ all_moves = {
     "PSYCHIC CHALLENGE":
         Move(name="PSYCHIC CHALLENGE",
              type=all_types["PSYCHIC"], speed=3, target_self=False,
-             damage_low=3, damage_high=6, aim=80, hit_attempts=3,
+             damage_low=4, damage_high=4, aim=75, hit_attempts=3,
              status_effect=all_status_effects["MENTAL IMPAIRMENT"], status_chance=100, cooldown=2),
     "WATER CANNON":
         Move(name="WATER CANNON",
@@ -830,8 +830,8 @@ all_moves = {
     "MIND CONTROL":
         Move(name="MIND CONTROL",
              type=all_types["PSYCHIC"], speed=2, target_self=False,
-             damage_low=0, damage_high=0, aim=200, hit_attempts=1,
-             status_effect=all_status_effects["CONTROL"], status_chance=90, rage_cost=60),
+             damage_low=8, damage_high=8, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["CONTROL"], status_chance=90, rage_cost=50),
 
     # SHIGOWI THE WIND GHOST SHAPESHIFTER
     "PHANTOM JAVELINS":
@@ -856,7 +856,7 @@ all_moves = {
              status_effect=all_status_effects["NULLIFICATION"], status_chance=200, cooldown=5),
     "VOID BLAST":
         Move(name="VOID BLAST", type=all_types["NULLIFY"], speed=3, target_self=False,
-             damage_low=12, damage_high=12, aim=95, hit_attempts=1,
+             damage_low=10, damage_high=10, aim=95, hit_attempts=1,
              status_effect=None, status_chance=0, rage_cost=20),
 
     # BAMAT THE LARGE MAGICAL BAT
@@ -882,7 +882,7 @@ all_moves = {
              status_effect=all_status_effects["MAGIC SHIELD"], status_chance=200, cooldown=0),
     "MAGIC BOLTS":
         Move(name="MAGIC BOLTS", type=all_types["MAGIC"], speed=2, target_self=False,
-             damage_low=8, damage_high=8, aim=90, hit_attempts=2,
+             damage_low=8, damage_high=8, aim=95, hit_attempts=2,
              status_effect=None, status_chance=0, rage_cost=30),
 
 }
