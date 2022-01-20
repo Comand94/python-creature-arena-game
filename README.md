@@ -31,6 +31,7 @@ Art and animations:
 * 2 original creatures with aninimated sprites (5 frames per creature)
 * 3 WIP creatures with animated sprites (5 frames per creature)
 * battle text box with animated sprite (10 frames)
+* visualized hit chance and status chance rolling (numbers that change quickly then slower and slower until stop)
 * icon art for all abilities and status effects (except rage abilities)
 * HUD including info box, type box, creature box and selected ability/status frames
 * font (downloaded from https://www.1001freefonts.com/good-times.font)
