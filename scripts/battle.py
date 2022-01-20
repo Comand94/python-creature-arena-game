@@ -5,7 +5,6 @@ import scripts.player as pl
 import scripts.creatures as cr
 import scripts.gui as g
 
-
 class Battle:
     def __init__(self, battle_scene: g.BattleScene, p1: pl.Player, p2: pl.Player):
         self.p1 = p1
@@ -95,8 +94,8 @@ class Battle:
         self.bs.__animateBattleText__(f"{self.p2.ac.c.name} JOINS THE BATTLE!")
         self.bs.__animateTextbox__(False)
 
-        p1_move_count = [0, 0, 0, 0, 0, 0]
-        p2_move_count = [0, 0, 0, 0, 0, 0]
+        p1_move_count = [0, 0, 0, 0, 0, 0, 0]
+        p2_move_count = [0, 0, 0, 0, 0, 0, 0]
 
         # different ai stats
         for p in (self.p1, self.p2):
@@ -156,6 +155,8 @@ class Battle:
                 self.bs.gui.display.fill(self.bs.gui.colors.GRAY)
                 self.bs.__blitHealth__()
                 self.bs.__blitModifiers__()
+                self.bs.__blitTurnCounter__(self.turn_counter)
+                self.bs.__blitRage__()
                 self.bs.__blitReadiness__(p1_move_roll, p2_move_roll)
                 self.bs.__cyclePrimarySprites__()
                 self.bs.__blitHUD__()
@@ -353,6 +354,8 @@ class Battle:
                     self.bs.__animateBattleText__(f"{self.p2.ac.c.name} JOINS THE BATTLE!")
                     print("switch p2")
                 self.bs.__animateTextbox__(False)
+
+            self.turn_counter += 1
 
         if self.p1.ac.health <= 0 and self.p2.ac.health > 0:
             print("\nPLAYER 2 WINS!")

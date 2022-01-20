@@ -241,7 +241,7 @@ class MatchSettingsScene(Scene):
         self.max_x = 1
         self.max_y = 5
         self.player_ai = [-1, -1]
-        self.player_creature = [[-1, -2, -2], [-1, -2, -2]]
+        self.player_creatures = [[-1, -2, -2], [-1, -2, -2]]
 
     def __updateSelected__(self):
         for k in self.gui.keys.keys_down:
@@ -251,18 +251,18 @@ class MatchSettingsScene(Scene):
                     player2_creatures = []
 
                     for x in (0, 1, 2):
-                        if self.player_creature[0][x] != -2:
-                            if self.player_creature[0][x] == -1:
+                        if self.player_creatures[0][x] != -2:
+                            if self.player_creatures[0][x] == -1:
                                 p1_creature_index = random.randrange(0, cr.all_creatures.__len__())
                             else:
-                                p1_creature_index = self.player_creature[0][x]
+                                p1_creature_index = self.player_creatures[0][x]
                             player1_creatures.append(cr.CreatureOccurrence(cr.all_creatures[p1_creature_index]))
 
-                        if self.player_creature[1][x] != -2:
-                            if self.player_creature[1][x] == -1:
+                        if self.player_creatures[1][x] != -2:
+                            if self.player_creatures[1][x] == -1:
                                 p2_creature_index = random.randrange(0, cr.all_creatures.__len__())
                             else:
-                                p2_creature_index = self.player_creature[0][x]
+                                p2_creature_index = self.player_creatures[1][x]
                             player2_creatures.append(cr.CreatureOccurrence(cr.all_creatures[p2_creature_index]))
 
                     player1 = pl.Player(1, player1_creatures, self.player_ai[0])
@@ -283,9 +283,9 @@ class MatchSettingsScene(Scene):
                     if self.player_ai[0] > 10:
                         self.player_ai[0] = -1
                 elif self.selected_y >= 2: # creature
-                    self.player_creature[0][self.selected_y - 2] += 1
-                    if self.player_creature[0][self.selected_y - 2] >= cr.all_creatures.__len__():
-                        self.player_creature[0][self.selected_y - 2] = -2
+                    self.player_creatures[0][self.selected_y - 2] += 1
+                    if self.player_creatures[0][self.selected_y - 2] >= cr.all_creatures.__len__():
+                        self.player_creatures[0][self.selected_y - 2] = -2
 
             if k == self.gui.keys.RIGHT or k == self.gui.keys.D[0] or k == self.gui.keys.D[1]: # change right side
                 if self.selected_y == 1: # ai
@@ -293,9 +293,9 @@ class MatchSettingsScene(Scene):
                     if self.player_ai[1] > 10:
                         self.player_ai[1] = -1
                 elif self.selected_y >= 2: # creature
-                    self.player_creature[1][self.selected_y - 2] += 1
-                    if self.player_creature[1][self.selected_y - 2] >= cr.all_creatures.__len__():
-                        self.player_creature[1][self.selected_y - 2] = -2
+                    self.player_creatures[1][self.selected_y - 2] += 1
+                    if self.player_creatures[1][self.selected_y - 2] >= cr.all_creatures.__len__():
+                        self.player_creatures[1][self.selected_y - 2] = -2
 
     def __displayScene__(self):
         while self.run_display:
@@ -341,25 +341,25 @@ class MatchSettingsScene(Scene):
                                             text_y + self.text_offset_mp[i], self.gui.colors.BLEEDING_WHITE)
 
                 elif i >= 2:
-                    if self.player_creature[0][i-2] == -2:
+                    if self.player_creatures[0][i - 2] == -2:
                         p1_creature_name = "NONE"
                         p1_creature_description = "NO CREATURE IN THE FIRST SLOT"
-                    elif self.player_creature[0][i-2] == -1:
+                    elif self.player_creatures[0][i - 2] == -1:
                         p1_creature_name = "? ? ?"
                         p1_creature_description = "UNKNOWN CHALLENGER"
                     else:
-                        p1_creature_name = cr.all_creatures[self.player_creature[0][i-2]].name
-                        p1_creature_description = cr.all_creatures[self.player_creature[0][i-2]].desc
+                        p1_creature_name = cr.all_creatures[self.player_creatures[0][i - 2]].name
+                        p1_creature_description = cr.all_creatures[self.player_creatures[0][i - 2]].desc
 
-                    if self.player_creature[1][i-2] == -2:
+                    if self.player_creatures[1][i - 2] == -2:
                         p2_creature_name = "NONE"
                         p2_creature_description = "NO CREATURE IN THE FIRST SLOT"
-                    elif self.player_creature[1][i-2] == -1:
+                    elif self.player_creatures[1][i - 2] == -1:
                         p2_creature_name = "? ? ?"
                         p2_creature_description = "UNKNOWN CHALLENGER"
                     else:
-                        p2_creature_name = cr.all_creatures[self.player_creature[1][i-2]].name
-                        p2_creature_description = cr.all_creatures[self.player_creature[1][i-2]].desc
+                        p2_creature_name = cr.all_creatures[self.player_creatures[1][i - 2]].name
+                        p2_creature_description = cr.all_creatures[self.player_creatures[1][i - 2]].desc
 
                     self.gui.__blitText__(p1_creature_name, text_size_2, text_x - 400,
                                           text_y + self.text_offset_mp[i], self.gui.colors.CYANISH_WHITE)
@@ -463,7 +463,7 @@ class BattleScene(Scene):
         self.background_color = self.gui.colors.GRAY
         self.p1 = p1
         self.p2 = p2
-        self.player_button_tips = [["Q", "W", "E", "A", "S", "D", "TAB"], ["4", "5", "6", "1", "2", "3", "PLUS"]]
+        self.player_button_tips = [["Q", "W", "E", "A", "S", "D", "TAB", "SPACE"], ["4", "5", "6", "1", "2", "3", "PLUS", "ENTER"]]
 
         # selected creature indices in case there are battles of more than 1 creature later
         self.player_selected_creature = [0, 0]
@@ -487,15 +487,14 @@ class BattleScene(Scene):
         self.player_infobox_up = [False, False]
 
         # infobox selected options
-        self.player_max_x = [6, cr.all_types.__len__()]
-        self.player_max_y = [8, 1]
-        self.player_max_z = 2
-        self.player_selected_x = [[0, 0], [0, 0]]
-        self.player_selected_y = [[0, 0], [0, 0]]
-        self.player_selected_z = [0, 0]
+        self.player_max_x = [cr.all_types.__len__(), 6, 1]
+        self.player_max_y = [1, 9, 1]
+        self.player_max_z = 3
+        self.player_selected_x = [[0, 0, 0], [0, 0, 0]]
+        self.player_selected_y = [[0, 0, 0], [0, 0, 0]]
+        self.player_selected_z = [1, 1]
 
         self.testing = testing # whether to load battle or creature index
-        self.turn_counter = 1 # turn counter in gui
         self.hud_clock = pygame.time.Clock() # for hud hotfix
 
         # creature animations are on separate clocks so they are not synchronized
@@ -511,6 +510,7 @@ class BattleScene(Scene):
         self.player_hud_images = []
         self.player_infobox_images = []
         self.player_typebox_images = []
+        self.player_creaturebox_images = []
         self.selected_images = []
 
         # controls for animations
@@ -527,11 +527,11 @@ class BattleScene(Scene):
         self.__rescaleEvent__()
 
         if not self.testing:
-            import scripts.battle as sb
             self.gui.current_scene = self
             for p_id in (0, 1):
                 self.animation_now[p_id] = self.animation_before[p_id] = self.animation_clock[p_id].tick()
-            self.battle = sb.Battle(self, p1, p2)
+            import scripts.battle as sb
+            sb.Battle(self, p1, p2)
 
     def __cyclePrimarySprites__(self):
         # for each player
@@ -592,9 +592,8 @@ class BattleScene(Scene):
             else:
                 player_chosen_moves[i] = -1
 
-            # update moves if off cooldown and infobox closed, else navigate infobox
             for k in self.gui.keys.keys_down:
-                if self.testing and not self.player_infobox_up[i]:
+                if self.testing and not self.player_infobox_up[i]: # creature index controls with infobox down
                     if k == self.gui.keys.A[i]:
                         self.player_selected_creature[i] = (self.player_selected_creature[i] - 1) % p.creatures.__len__()
                         p.ac = p.creatures[self.player_selected_creature[i]]
@@ -605,7 +604,7 @@ class BattleScene(Scene):
                         self.__updateCreatureImages__()
                     if k == self.gui.keys.INFO[i]:
                         self.player_infobox_up[i] = True
-                elif player_chosen_moves[i] == -1 and p.ai < 0 and not self.player_infobox_up[i] and not self.testing:
+                elif player_chosen_moves[i] == -1 and p.ai < 0 and not self.player_infobox_up[i] and not self.testing: # move choice
                     if k == self.gui.keys.INFO[i]:
                         self.player_infobox_up[i] = True
                     if k == self.gui.keys.Q[i] and p.ac.cooldowns[0] <= 0:
@@ -620,56 +619,82 @@ class BattleScene(Scene):
                         player_chosen_moves[i] = 4
                     if k == self.gui.keys.D[i] and p.ac.cooldowns[5] <= 0:
                         player_chosen_moves[i] = 5
-                elif player_chosen_moves[i] == -1 and p.ai < 0 and self.player_infobox_up[i] and self.player_selected_z[i] == 0:
+                    if k == self.gui.keys.CONFIRM[i] and p.ac.rage >= p.ac.c.moves[6].rage_cost:
+                        player_chosen_moves[i] = 6
+                elif player_chosen_moves[i] == -1 and p.ai < 0 and self.player_infobox_up[i] and self.player_selected_z[i] == 1: #infobox
+                    z = 1
                     if k == self.gui.keys.INFO[i]:
                         self.player_infobox_up[i] = False
                     if k == self.gui.keys.Q[i]:
-                        self.player_selected_z[i] = (self.player_selected_z[i] + 1) % self.player_max_z
+                        self.player_selected_z[i] = (self.player_selected_z[i] - 1) % self.player_max_z
                     if k == self.gui.keys.W[i]:
-                        self.player_selected_y[0][i] = (self.player_selected_y[0][i] - 1) % self.player_max_y[0]
-                        if self.player_selected_x[0][i] >= 2 and self.player_selected_y[0][i] == 2:
-                            self.player_selected_x[0][i] -= 1
-                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] == 2:
-                            self.player_selected_x[0][i] -= 1
-                        if self.player_selected_x[0][i] >= 2 and self.player_selected_y[0][i] == 7:
-                            self.player_selected_x[0][i] += 1
-                        # safety check
-                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] <= 2:
-                            self.player_selected_x[0][i] = 3
+                        self.player_selected_y[i][z] = (self.player_selected_y[i][z] - 1) % self.player_max_y[z]
+                        if self.player_selected_y[i][z] == 2:
+                            self.player_selected_x[i][z] *= 2
+                        if self.player_selected_x[i][z] <= 2 and self.player_selected_y[i][z] == 3: # own rage
+                            self.player_selected_x[i][z] = 0
+                        if self.player_selected_x[i][z] > 2 and self.player_selected_y[i][z] == 3: # opponent rage
+                            self.player_selected_x[i][z] = 1
+                        if self.player_selected_x[i][z] >= 2 and self.player_selected_y[i][z] == 8:
+                            self.player_selected_x[i][z] += 1
+                        # safety checks
+                        if self.player_selected_x[i][z] >= 4 and self.player_selected_y[i][z] <= 2:
+                            self.player_selected_x[i][z] = 3
+                        if self.player_selected_x[i][z] >= 2 and self.player_selected_y[i][z] == 3:
+                            self.player_selected_x[i][z] = 1
                     if k == self.gui.keys.E[i]:
-                        self.player_selected_z[i] = (self.player_selected_z[i] - 1) % self.player_max_z
+                        self.player_selected_z[i] = (self.player_selected_z[i] + 1) % self.player_max_z
                     if k == self.gui.keys.A[i]:
-                        self.player_selected_x[0][i] = (self.player_selected_x[0][i] - 1) % self.player_max_x[0]
-                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] <= 2:
-                            self.player_selected_x[0][i] = 3
+                        self.player_selected_x[i][z] = (self.player_selected_x[i][z] - 1) % self.player_max_x[z]
+                        if self.player_selected_x[i][z] >= 4 and self.player_selected_y[i][z] <= 2:
+                            self.player_selected_x[i][z] = 3
+                        if self.player_selected_x[i][z] >= 2 and self.player_selected_y[i][z] == 3:
+                            self.player_selected_x[i][z] = 1
                     if k == self.gui.keys.S[i]:
-                        self.player_selected_y[0][i] = (self.player_selected_y[0][i] + 1) % self.player_max_y[0]
-                        if self.player_selected_x[0][i] >= 2 and self.player_selected_y[0][i] == 0:
-                            self.player_selected_x[0][i] -= 1
-                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] == 0:
-                            self.player_selected_x[0][i] -= 1
-                        if self.player_selected_x[0][i] >= 2 and self.player_selected_y[0][i] == 3:
-                            self.player_selected_x[0][i] += 1
-                        # safety check
-                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] <= 2:
-                            self.player_selected_x[0][i] = 3
+                        self.player_selected_y[i][z] = (self.player_selected_y[i][z] + 1) % self.player_max_y[z]
+                        if self.player_selected_x[i][z] >= 2 and self.player_selected_y[i][z] == 0:
+                            self.player_selected_x[i][z] -= 1
+                        if self.player_selected_x[i][z] >= 4 and self.player_selected_y[i][z] == 0:
+                            self.player_selected_x[i][z] -= 1
+                        if self.player_selected_x[i][z] < 2 and self.player_selected_y[i][z] == 3:
+                            self.player_selected_x[i][z] = 0
+                        if self.player_selected_x[i][z] >= 2 and self.player_selected_y[i][z] == 3:
+                            self.player_selected_x[i][z] = 1
+                        if self.player_selected_y[i][z] == 4:
+                            self.player_selected_x[i][z] *= 3
+                        # safety checks
+                        if self.player_selected_x[i][z] >= 4 and self.player_selected_y[i][z] <= 2:
+                            self.player_selected_x[i][z] = 3
+                        if self.player_selected_x[i][z] >= 2 and self.player_selected_y[i][z] == 3:
+                            self.player_selected_x[i][z] = 1
                     if k == self.gui.keys.D[i]:
-                        self.player_selected_x[0][i] = (self.player_selected_x[0][i] + 1) % self.player_max_x[0]
-                        if self.player_selected_x[0][i] >= 4 and self.player_selected_y[0][i] <= 2:
-                            self.player_selected_x[0][i] = 0
-                elif player_chosen_moves[i] == -1 and p.ai < 0 and self.player_infobox_up[i] and self.player_selected_z[i] == 1:
+                        self.player_selected_x[i][z] = (self.player_selected_x[i][z] + 1) % self.player_max_x[z]
+                        if self.player_selected_x[i][z] >= 4 and self.player_selected_y[i][z] <= 2:
+                            self.player_selected_x[i][z] = 0
+                        if self.player_selected_x[i][z] >= 2 and self.player_selected_y[i][z] == 3:
+                            self.player_selected_x[i][z] = 0
+                elif player_chosen_moves[i] == -1 and p.ai < 0 and self.player_infobox_up[i] and self.player_selected_z[i] == 0: # typebox
+                    z = 0
                     if k == self.gui.keys.INFO[i]:
                         self.player_infobox_up[i] = False
                     if k == self.gui.keys.Q[i]:
-                        self.player_selected_z[i] = (self.player_selected_z[i] + 1) % self.player_max_z
-                    if k == self.gui.keys.E[i]:
                         self.player_selected_z[i] = (self.player_selected_z[i] - 1) % self.player_max_z
+                    if k == self.gui.keys.E[i]:
+                        self.player_selected_z[i] = (self.player_selected_z[i] + 1) % self.player_max_z
                     if k == self.gui.keys.A[i]:
-                        self.player_selected_x[1][i] = (self.player_selected_x[1][i] - 1) % self.player_max_x[1]
+                        self.player_selected_x[i][z] = (self.player_selected_x[i][z] - 1) % self.player_max_x[z]
                     if k == self.gui.keys.D[i]:
-                        self.player_selected_x[1][i] = (self.player_selected_x[1][i] + 1) % self.player_max_x[1]
+                        self.player_selected_x[i][z] = (self.player_selected_x[i][z] + 1) % self.player_max_x[z]
+                elif player_chosen_moves[i] == -1 and p.ai < 0 and self.player_infobox_up[i] and self.player_selected_z[i] == 2: # creaturebox
+                    if k == self.gui.keys.INFO[i]:
+                        self.player_infobox_up[i] = False
+                    if k == self.gui.keys.Q[i]:
+                        self.player_selected_z[i] = (self.player_selected_z[i] - 1) % self.player_max_z
+                    if k == self.gui.keys.E[i]:
+                        self.player_selected_z[i] = (self.player_selected_z[i] + 1) % self.player_max_z
 
         return player_chosen_moves
+
 
     def __displayScene__(self):
         # while running, battle.py will do the work, battle scene will be waiting at this point
@@ -719,6 +744,7 @@ class BattleScene(Scene):
         self.player_hud_images.clear()
         self.player_infobox_images.clear()
         self.player_typebox_images.clear()
+        self.player_creaturebox_images.clear()
         self.selected_images.clear()
 
         # get animated textbox
@@ -748,6 +774,12 @@ class BattleScene(Scene):
             image = pygame.image.load(typebox_path)
             image = pygame.transform.scale(image, (self.gui.DISPLAY_W, self.gui.DISPLAY_H))
             self.player_typebox_images.append(image)
+
+            # get creatureboxes
+            creaturebox_path = os.path.join(self.dirname, f'../assets/art/interface/p{p_id}_creaturebox.png')
+            image = pygame.image.load(creaturebox_path)
+            image = pygame.transform.scale(image, (self.gui.DISPLAY_W, self.gui.DISPLAY_H))
+            self.player_creaturebox_images.append(image)
 
         # get infobox selected ability and status
         selected_path = os.path.join(self.dirname, f'../assets/art/interface/selected_ability.png')
@@ -1094,6 +1126,106 @@ class BattleScene(Scene):
                 self.gui.__blitText__(self.last_battle_text[0], 45, 960, 720, self.gui.colors.BLACK)
                 self.gui.__blitText__(self.last_battle_text[1], 45, 960, 780, self.gui.colors.BLACK)
 
+    def __blitMove__(self, p: pl.Player, opponent: pl.Player):
+        # resolution scaling multiplier
+        res_mp = self.gui.DISPLAY_W / 1920
+
+        i = p.id - 1
+        z = self.player_selected_z[i]
+        y = self.player_selected_y[i][z]
+        x = self.player_selected_x[i][z]
+
+        x_mod2 = 493 * i
+
+        self.gui.__blitText__("SELECTED MOVE:", 20, 713 + x_mod2, 300, self.gui.colors.RED)
+
+        if y == 3 and x == 0: # own rage
+            move_index = 6
+            move = p.ac.c.moves[move_index]
+            base_x = 49
+        elif y == 3 and x == 1: # enemy rage
+            move_index = 6
+            move = opponent.ac.c.moves[move_index]
+            base_x = 71
+        elif x <= 1:  # own ability
+            move_index = y * 2 + x
+            move = p.ac.c.moves[move_index]
+            base_x = 49
+        else:
+            move_index = y * 2 + x - 2
+            move = opponent.ac.c.moves[move_index]
+            base_x = 71
+
+        if y != 3:
+            selected = self.selected_images[0]
+            rect = selected.get_rect()
+            rect = rect.move(((base_x + 103 * x + 1408 * i) * res_mp, (335 + 50 * y) * res_mp))
+            self.gui.display.blit(selected, rect)
+
+        # blit move
+        self.gui.__blitText__(f"{move.name}", 20, 713 + x_mod2, 320, self.gui.colors.RED)
+        self.gui.__blitText__(f"SPEED: {move.speed}", 20, 713 + x_mod2, 360, self.gui.colors.BLACK)
+        if move.target_self:
+            target_self_text = "YES"
+        else:
+            target_self_text = "NO"
+        self.gui.__blitText__(f"TARGET SELF: {target_self_text}", 20, 713 + x_mod2, 380,
+                              self.gui.colors.BLACK)
+        self.gui.__blitText__(f"DAMAGE: {move.damage_low} TO {move.damage_high}", 20, 713 + x_mod2, 400,
+                              self.gui.colors.BLACK)
+        self.gui.__blitText__(f"HIT CHANCE: {move.aim}", 20, 713 + x_mod2, 420, self.gui.colors.BLACK)
+        self.gui.__blitText__(f"HIT ATTEMPTS: {move.hit_attempts}", 20, 713 + x_mod2, 440,
+                              self.gui.colors.BLACK)
+        self.gui.__blitText__(f"STATUS CHANCE: {move.status_chance}", 20, 713 + x_mod2, 460,
+                              self.gui.colors.BLACK)
+        if move.rage_cost == 0:
+            self.gui.__blitText__(f"COOLDOWN: {move.cooldown}", 20, 713 + x_mod2, 480, self.gui.colors.BLACK)
+            self.gui.__blitText__(f"TYPE: {move.type.name}", 20, 713 + x_mod2, 540, self.gui.colors.BLACK)
+        else:
+            self.gui.__blitText__(f"RAGE COST: {move.rage_cost}", 20, 713 + x_mod2, 480, self.gui.colors.BLACK)
+            self.gui.__blitText__(f"CURRENT RAGE: ({p.ac.rage}/{p.ac.c.rage})", 20, 713 + x_mod2, 500, self.gui.colors.BLACK)
+            self.gui.__blitText__(f"TYPE: {move.type.name}", 20, 713 + x_mod2, 530, self.gui.colors.BLACK)
+
+        if move.status_effect is not None:  # blit status if there is one
+            se = move.status_effect
+            self.gui.__blitText__("SELECTED MOVE'S STATUS EFFECT:", 20, 713 + x_mod2, 583,
+                                  self.gui.colors.RED)
+            self.gui.__blitText__(f"{move.status_effect.name}", 20, 713 + x_mod2, 603,
+                                  self.gui.colors.RED)
+            self.gui.__blitText__(f"DAMAGE PER TURN: {se.damage_low} TO {se.damage_high}", 20, 713 + x_mod2,
+                                  643, self.gui.colors.BLACK)
+            self.gui.__blitText__(f"THORN DAMAGE: {se.thorn_damage_low} TO {se.thorn_damage_high}", 20,
+                                  713 + x_mod2, 663, self.gui.colors.BLACK)
+            self.gui.__blitText__(f"AIM MODIFIER: {se.aim_mod}", 20, 713 + x_mod2, 683,
+                                  self.gui.colors.BLACK)
+            self.gui.__blitText__(f"DEFENSE MODIFIER: {se.defense_mod}", 20, 713 + x_mod2, 703,
+                                  self.gui.colors.BLACK)
+            self.gui.__blitText__(f"DAMAGE MODIFIER: {se.damage_mod}", 20, 713 + x_mod2, 723,
+                                  self.gui.colors.BLACK)
+            if se.damage_mod_type is not None:
+                self.gui.__blitText__(f"DAMAGE MOD TYPE: {se.damage_mod_type.name}", 20, 713 + x_mod2, 743,
+                                      self.gui.colors.BLACK)
+            elif se.damage_mod != 0:
+                self.gui.__blitText__(f"DAMAGE MOD TYPE: ALL TYPES", 20, 713 + x_mod2, 743,
+                                      self.gui.colors.BLACK)
+            else:
+                self.gui.__blitText__(f"DAMAGE MOD TYPE: NONE", 20, 713 + x_mod2, 743,
+                                      self.gui.colors.BLACK)
+            self.gui.__blitText__(f"STATUS DURATION: {se.status_duration} TURN(S)", 20, 713 + x_mod2, 763,
+                                  self.gui.colors.BLACK)
+            if se.stun_duration <= -1:
+                self.gui.__blitText__(f"STUN DURATION: NO STUN", 20, 713 + x_mod2, 783,
+                                      self.gui.colors.BLACK)
+            elif se.stun_duration == 0:
+                self.gui.__blitText__(f"STUN DURATION: CASTING TURN", 20, 713 + x_mod2, 783,
+                                      self.gui.colors.BLACK)
+            else:
+                self.gui.__blitText__(f"STUN DURATION: {se.stun_duration} TURN(S)", 20, 713 + x_mod2, 783,
+                                      self.gui.colors.BLACK)
+            self.gui.__blitText__(f"TYPE: {se.type.name}", 20, 713 + x_mod2, 823, self.gui.colors.BLACK)
+        else:  # blit empty status
+            self.gui.__blitText__("--------", 20, 713 + x_mod2, 583, self.gui.colors.RED)
+
     def __blitHUD__(self):
         # make sure the hud doesn't blit too fast in lower resolutions
         now = before = self.hud_clock.tick()
@@ -1178,11 +1310,11 @@ class BattleScene(Scene):
             else:
                 opponent = self.p1
 
-            x = self.player_selected_x[0][i]
-            y = self.player_selected_y[0][i]
             z = self.player_selected_z[i]
+            x = self.player_selected_x[i][z]
+            y = self.player_selected_y[i][z]
 
-            if self.player_infobox_up[i] and self.player_selected_z[i] == 0:
+            if self.player_infobox_up[i] and z == 1:
 
                 # blit infobox black background
                 p_infobox_background = pygame.Rect((res_mp * (33 + 949 * i), res_mp * 282, res_mp * 905, res_mp * 568))
@@ -1205,98 +1337,34 @@ class BattleScene(Scene):
                 self.gui.__blitText__("OPPONENT", 20, 370 + x_mod, 300, self.gui.colors.RED)
                 self.gui.__blitText__("MOVES", 20, 370 + x_mod, 320, self.gui.colors.RED)
 
-                self.gui.__blitText__("ACTIVE", 20, 142 + x_mod, 515, self.gui.colors.RED)
-                self.gui.__blitText__("EFFECTS", 20, 142 + x_mod, 535, self.gui.colors.RED)
-                self.gui.__blitText__("ACTIVE", 20, 370 + x_mod, 515, self.gui.colors.RED)
-                self.gui.__blitText__("EFFECTS", 20, 370 + x_mod, 535, self.gui.colors.RED)
+                if x == 0 and y == 3:
+                    self.gui.__blitText__("RAGE ABILITY", 18, 142 + x_mod, 503, self.gui.colors.CYAN)
+                else:
+                    self.gui.__blitText__("RAGE ABILITY", 16, 142 + x_mod, 504, self.gui.colors.GRAY)
 
-                if y <= 2:  # selected ability
+                if x == 1 and y == 3:
+                    self.gui.__blitText__("RAGE ABILITY", 18, 370 + x_mod, 503, self.gui.colors.CYAN)
+                else:
+                    self.gui.__blitText__("RAGE ABILITY", 16, 370 + x_mod, 504, self.gui.colors.GRAY)
 
-                    self.gui.__blitText__("SELECTED MOVE:", 20, 713 + x_mod2, 300, self.gui.colors.RED)
-                    if x <= 1:  # own ability
-                        move_index = y * 2 + x
-                        move = p.ac.c.moves[move_index]
-                        base_x = 49
-                    else:
-                        move_index = y * 2 + x - 2
-                        move = opponent.ac.c.moves[move_index]
-                        base_x = 71
 
-                    selected = self.selected_images[0]
-                    rect = selected.get_rect()
-                    rect = rect.move(((base_x + 103 * x + 1408 * i) * res_mp, (335 + 50 * y) * res_mp))
-                    self.gui.display.blit(selected, rect)
+                self.gui.__blitText__("ACTIVE EFFECTS", 20, 142 + x_mod, 535, self.gui.colors.RED)
+                self.gui.__blitText__("ACTIVE EFFECTS", 20, 370 + x_mod, 535, self.gui.colors.RED)
 
-                    # blit move
-                    self.gui.__blitText__(f"{move.name}", 20, 713 + x_mod2, 320, self.gui.colors.RED)
-                    self.gui.__blitText__(f"SPEED: {move.speed}", 20, 713 + x_mod2, 360, self.gui.colors.BLACK)
-                    if move.target_self:
-                        target_self_text = "YES"
-                    else:
-                        target_self_text = "NO"
-                    self.gui.__blitText__(f"TARGET SELF: {target_self_text}", 20, 713 + x_mod2, 380,
-                                          self.gui.colors.BLACK)
-                    self.gui.__blitText__(f"DAMAGE: {move.damage_low} TO {move.damage_high}", 20, 713 + x_mod2, 400,
-                                          self.gui.colors.BLACK)
-                    self.gui.__blitText__(f"HIT CHANCE: {move.aim}", 20, 713 + x_mod2, 420, self.gui.colors.BLACK)
-                    self.gui.__blitText__(f"HIT ATTEMPTS: {move.hit_attempts}", 20, 713 + x_mod2, 440,
-                                          self.gui.colors.BLACK)
-                    self.gui.__blitText__(f"STATUS CHANCE: {move.status_chance}", 20, 713 + x_mod2, 460,
-                                          self.gui.colors.BLACK)
-                    self.gui.__blitText__(f"COOLDOWN: {move.cooldown}", 20, 713 + x_mod2, 480, self.gui.colors.BLACK)
-                    self.gui.__blitText__(f"TYPE: {move.type.name}", 20, 713 + x_mod2, 520, self.gui.colors.BLACK)
+                if y <= 3:  # selected ability
+                    self.__blitMove__(p, opponent)
 
-                    if move.status_effect is not None:  # blit status if there is one
-                        se = move.status_effect
-                        self.gui.__blitText__("SELECTED MOVE'S STATUS EFFECT:", 20, 713 + x_mod2, 583,
-                                              self.gui.colors.RED)
-                        self.gui.__blitText__(f"{move.status_effect.name}", 20, 713 + x_mod2, 603,
-                                              self.gui.colors.RED)
-                        self.gui.__blitText__(f"DAMAGE PER TURN: {se.damage_low} TO {se.damage_high}", 20, 713 + x_mod2,
-                                              643, self.gui.colors.BLACK)
-                        self.gui.__blitText__(f"THORN DAMAGE: {se.thorn_damage_low} TO {se.thorn_damage_high}", 20,
-                                              713 + x_mod2, 663, self.gui.colors.BLACK)
-                        self.gui.__blitText__(f"AIM MODIFIER: {se.aim_mod}", 20, 713 + x_mod2, 683,
-                                              self.gui.colors.BLACK)
-                        self.gui.__blitText__(f"DEFENSE MODIFIER: {se.defense_mod}", 20, 713 + x_mod2, 703,
-                                              self.gui.colors.BLACK)
-                        self.gui.__blitText__(f"DAMAGE MODIFIER: {se.damage_mod}", 20, 713 + x_mod2, 723,
-                                              self.gui.colors.BLACK)
-                        if se.damage_mod_type is not None:
-                            self.gui.__blitText__(f"DAMAGE MOD TYPE: {se.damage_mod_type.name}", 20, 713 + x_mod2, 743,
-                                                  self.gui.colors.BLACK)
-                        elif se.damage_mod != 0:
-                            self.gui.__blitText__(f"DAMAGE MOD TYPE: ALL TYPES", 20, 713 + x_mod2, 743,
-                                                  self.gui.colors.BLACK)
-                        else:
-                            self.gui.__blitText__(f"DAMAGE MOD TYPE: NONE", 20, 713 + x_mod2, 743,
-                                                  self.gui.colors.BLACK)
-                        self.gui.__blitText__(f"STATUS DURATION: {se.status_duration} TURN(S)", 20, 713 + x_mod2, 763,
-                                              self.gui.colors.BLACK)
-                        if se.stun_duration <= -1:
-                            self.gui.__blitText__(f"STUN DURATION: NO STUN", 20, 713 + x_mod2, 783,
-                                                  self.gui.colors.BLACK)
-                        elif se.stun_duration == 0:
-                            self.gui.__blitText__(f"STUN DURATION: CASTING TURN", 20, 713 + x_mod2, 783,
-                                                  self.gui.colors.BLACK)
-                        else:
-                            self.gui.__blitText__(f"STUN DURATION: {se.stun_duration} TURN(S)", 20, 713 + x_mod2, 783,
-                                                  self.gui.colors.BLACK)
-                        self.gui.__blitText__(f"TYPE: {se.type.name}", 20, 713 + x_mod2, 823, self.gui.colors.BLACK)
-                    else:  # blit empty status
-                        self.gui.__blitText__("--------", 20, 713 + x_mod2, 583, self.gui.colors.RED)
-
-                else:  # selected status or empty
+                elif y >= 4:  # selected status or empty
 
                     if x <= 2:  # own status
-                        status_index = (y - 3) * 3 + x
+                        status_index = (y - 4) * 3 + x
                         base_x = 40
                         if status_index < p.ac.active_statuses.__len__():
                             so = p.ac.active_statuses[status_index]
                         else:
                             so = None
                     else:
-                        status_index = (y - 3) * 3 + x - 3
+                        status_index = (y - 4) * 3 + x - 3
                         base_x = 55
                         if status_index < opponent.ac.active_statuses.__len__():
                             so = opponent.ac.active_statuses[status_index]
@@ -1305,7 +1373,7 @@ class BattleScene(Scene):
 
                     selected = self.selected_images[1]
                     rect = selected.get_rect()
-                    rect = rect.move(((base_x + 71 * x + 1408 * i) * res_mp, (465 + 28 * y) * res_mp))
+                    rect = rect.move(((base_x + 71 * x + 1408 * i) * res_mp, (437 + 28 * y) * res_mp))
                     self.gui.display.blit(selected, rect)
 
                     if so is None:
@@ -1353,7 +1421,7 @@ class BattleScene(Scene):
                                                   self.gui.colors.BLACK)
                         self.gui.__blitText__(f"TYPE: {so.se.type.name}", 20, 713 + x_mod2, 823, self.gui.colors.BLACK)
 
-            elif self.player_infobox_up[i] and self.player_selected_z[i] == 1: # typebox
+            elif self.player_infobox_up[i] and z == 0: # typebox
                 # blit typebox
                 typebox = self.player_typebox_images[i]
                 rect = typebox.get_rect()
@@ -1388,7 +1456,7 @@ class BattleScene(Scene):
                                       self.gui.colors.BLACK)
 
                 # type text
-                type = cr.types[self.player_selected_x[1][i]]
+                type = cr.types[self.player_selected_x[i][z]]
                 x_mod2 = 493 * i
 
                 self.gui.__blitText__(f"SELECTED TYPE: {type.name}", 20, 713 + x_mod2, 300, self.gui.colors.RED)
@@ -1444,6 +1512,36 @@ class BattleScene(Scene):
                     y_coordinate += y_inc
                     self.gui.__blitText__("REMOVE ANY EFFECTS", 20, 713 + x_mod2, y_coordinate,
                                           self.gui.colors.BLACK)
+
+            elif self.player_infobox_up[i] and z == 2: # creaturebox
+                # blit creaturebox
+                creaturebox = self.player_creaturebox_images[i]
+                rect = creaturebox.get_rect()
+                rect = rect.move((0, 0))
+                self.gui.display.blit(creaturebox, rect)
+
+                # non-changeable text
+                x_mod = 1407 * i
+                self.gui.__blitText__("PLAYER", 20, 142 + x_mod, 300, self.gui.colors.RED)
+                self.gui.__blitText__("CREATURES", 20, 142 + x_mod, 320, self.gui.colors.RED)
+                y_coordinate = 370
+                y_inc = 20
+                for co in p.creatures:
+                    self.gui.__blitText__(f"{co.c.name}", 20, 142 + x_mod, y_coordinate, self.gui.colors.BLACK)
+                    y_coordinate += y_inc
+                    self.gui.__blitText__(f"({co.health}/{co.c.health})", 20, 142 + x_mod, y_coordinate, self.gui.colors.BLACK)
+                    y_coordinate += 2 * y_inc
+
+                self.gui.__blitText__("OPPONENT", 20, 370 + x_mod, 300, self.gui.colors.RED)
+                self.gui.__blitText__("CREATURES", 20, 370 + x_mod, 320, self.gui.colors.RED)
+                y_coordinate = 370
+                y_inc = 20
+                for co in opponent.creatures:
+                    self.gui.__blitText__(f"{co.c.name}", 20, 370 + x_mod, y_coordinate, self.gui.colors.BLACK)
+                    y_coordinate += y_inc
+                    self.gui.__blitText__(f"({co.health}/{co.c.health})", 20, 370 + x_mod, y_coordinate,
+                                          self.gui.colors.BLACK)
+                    y_coordinate += 2 * y_inc
 
         # creature names and whether they are active or not
         # p1
@@ -1581,9 +1679,6 @@ class BattleScene(Scene):
             self.gui.__delay__(500)  # 500ms delay
 
     def __animateMovePriority__(self, p1_move_speed: int, p2_move_speed: int, moves_first: int):
-        # this will increment turn counter too as this only executes once during a turn
-        self.turn_counter += 1
-
         text = ["WHO MOVES FIRST?", f"{p1_move_speed}-SPEED VS {p2_move_speed}-SPEED", "", ""]
 
         if p1_move_speed == p2_move_speed:
@@ -1654,14 +1749,14 @@ class BattleScene(Scene):
         else:  # infobox is circled too
             p2_ready_rect = pygame.Rect((res_mp * 969, res_mp * 270, res_mp * 933, res_mp * 787))
 
-        if 0 <= p1_move_roll <= 5:  # p1 ready
+        if 0 <= p1_move_roll <= 6:  # p1 ready
             self.gui.display.fill(self.gui.colors.GREEN, p1_ready_rect)
         elif p1_move_roll == -2:
             self.gui.display.fill(self.gui.colors.BLUE, p1_ready_rect)
         else:
             self.gui.display.fill(self.gui.colors.RED, p1_ready_rect)
 
-        if 0 <= p2_move_roll <= 5:  # p1 ready
+        if 0 <= p2_move_roll <= 6:  # p1 ready
             self.gui.display.fill(self.gui.colors.GREEN, p2_ready_rect)
         elif p2_move_roll == -2:
             self.gui.display.fill(self.gui.colors.BLUE, p2_ready_rect)
@@ -1701,6 +1796,20 @@ class BattleScene(Scene):
                                   self.gui.colors.WHITE)
             self.gui.__blitText__(f"BASE DEFENSE OF {p.ac.c.defense}", 20, 477 + x2_mod * i, 250, self.gui.colors.WHITE)
 
-        self.gui.__blitText__(f"TURN {self.turn_counter}", 25, 960, 210,
-                                self.gui.colors.WHITE)
 
+    def __blitTurnCounter__(self, turn: int):
+        self.gui.__blitText__(f"TURN {turn}", 25, 960, 210,
+                              self.gui.colors.WHITE)
+
+    def __blitRage__(self):
+        for p in (self.p1, self.p2):
+            i = p.id - 1
+
+            if not self.player_infobox_up[i]:  # rage counter
+                if p.ai < 0 and p.ac.rage >= p.ac.c.moves[6].rage_cost:
+                    rage_info = f'PRESS "{self.player_button_tips[i][7]}" TO USE "{p.ac.c.moves[6].name}" FOR {p.ac.c.moves[6].rage_cost} RAGE POINTS ({p.ac.rage}/{p.ac.c.rage})'
+                    self.gui.__blitText__(rage_info, 20, 480 + 960 * i, 820,
+                                          self.gui.colors.WHITE)
+                else:
+                    self.gui.__blitText__(f"RAGE ({p.ac.rage}/{p.ac.c.rage})", 30, 480 + 960 * i, 819,
+                                          self.gui.colors.WHITE)

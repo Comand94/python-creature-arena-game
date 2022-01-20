@@ -103,7 +103,8 @@ class Move:
     def __init__(self, name: str,
                  type: Type, speed: int = 3, target_self: bool = False,
                  damage_low: int = 0, damage_high: int = 0, aim: int = 90, hit_attempts: int = 1,
-                 status_effect: StatusEffect = None, status_chance: int = 0, cooldown: int = 1):
+                 status_effect: StatusEffect = None, status_chance: int = 0, cooldown: int = 0,
+                 rage_cost: int = 0):
         self.name = name
         self.type = type
         self.speed = speed
@@ -121,6 +122,7 @@ class Move:
         # cooldown of 0 means no cooldown, 1 means one turn, etc.
         if cooldown < 0: cooldown = 0
         self.cooldown = cooldown
+        self.rage_cost = rage_cost
 
 
 # straight-forward
@@ -128,7 +130,8 @@ class Creature:
 
     def __init__(self, id: int, name: str, desc: str, health: int, defense: int,
                  move1: Move, move2: Move, move3: Move, move4: Move, move5: Move,
-                 types: tuple[Type, ...]):
+                 types: tuple[Type, ...],
+                 rage: int, rage_move: Move):
         self.id = id
         self.name = name
         self.desc = desc
@@ -144,6 +147,8 @@ class Creature:
         self.types = []
         for t in types:
             self.types.append(t)
+        self.rage = rage
+        self.moves.append(rage_move)
 
 
 class CreatureOccurrence:
@@ -151,10 +156,11 @@ class CreatureOccurrence:
     def __init__(self, c: Creature):
         self.c = c
         self.health = c.health
+        self.rage = 0
         self.active_statuses: list[StatusOccurrence, ...]
         self.active_statuses = []
         self.isStunned = False
-        self.cooldowns = [0, 0, 0, 0, 0, all_moves["HEALTH KIT"].cooldown]
+        self.cooldowns = [0, 0, 0, 0, 0, all_moves["HEALTH KIT"].cooldown, 0]
         self.total_damage_healed = 0  # for statistics
 
     def __joinBattleScene__(self, battle_scene: g.BattleScene):
@@ -162,7 +168,7 @@ class CreatureOccurrence:
 
     def __tickCooldowns__(self):
         print(f"Cooldowns of {self.c.name}: ")
-        for i in range(0, 6):
+        for i in range(0, 7):
             if self.cooldowns[i] >= 1:
                 self.cooldowns[i] -= 1
             print(self.cooldowns[i], end=", ")
@@ -234,6 +240,10 @@ class CreatureOccurrence:
         if damage > 0:
             print(f"{self.c.name} takes {damage} damage!")
             self.bs.__animateBattleText__(f"{self.c.name} TAKES {damage} DAMAGE!")
+            # add rage and cap it
+            self.rage += damage
+            if self.rage > self.c.rage:
+                self.rage = self.c.rage
         elif damage < 0:
             print(f"{self.c.name} regains {-damage} health!")
             self.bs.__animateBattleText__(f"{self.c.name} REGAINS {-damage} HEALTH!")
@@ -347,6 +357,13 @@ class CreatureOccurrence:
 
         hit_roll = 0
         print(f"{self.c.name} USES {move.name}!")
+
+        # rage cost
+        if move.rage_cost > 0:
+            rage_text = f'{self.c.name} IS CONSUMED BY RAGE!'
+            rage_text_2 = f'RAGE POINTS DECREASED BY {move.rage_cost}!'
+            self.bs.__animateBattleText__(rage_text, rage_text_2)
+            self.rage -= move.rage_cost
 
         # creature targets self
         if move.target_self:
@@ -642,6 +659,11 @@ all_status_effects = {
                      aim_mod=0, defense_mod=3, damage_mod=0, damage_mod_type=None,
                      status_duration=5, stun_duration=-1,
                      thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=-5),
+    "SHOCK FENCE":
+        StatusEffect(name="SHOCK FENCE", type=all_types["ELECTRIC"], damage_low=0, damage_high=0,
+                     aim_mod=0, defense_mod=30, damage_mod=0, damage_mod_type=None,
+                     status_duration=0, stun_duration=-1,
+                     thorn_damage_low=12, thorn_damage_high=16, extinguish_scoring=0),
 
     # PSAWARCA THE PSYCHIC WATER ORCA
     "MENTAL IMPAIRMENT":
@@ -659,6 +681,11 @@ all_status_effects = {
                      aim_mod=0, defense_mod=25, damage_mod=0, damage_mod_type=None,
                      status_duration=3, stun_duration=-1,
                      thorn_damage_low=2, thorn_damage_high=3, extinguish_scoring=-10),
+    "CONTROL":
+        StatusEffect(name="CONTROL", type=all_types["PSYCHIC"], damage_low=0, damage_high=0,
+                     aim_mod=0, defense_mod=-10, damage_mod=0, damage_mod_type=None,
+                     status_duration=2, stun_duration=2,
+                     thorn_damage_low=0, thorn_damage_high=0, extinguish_scoring=10),
 
     # SHIGOWI THE WIND SHAPESHIFTER
     "HIDDEN BY VOID":
@@ -735,6 +762,11 @@ all_moves = {
              type=all_types["FIRE"], speed=5, target_self=True,
              damage_low=0, damage_high=0, aim=200, hit_attempts=1,
              status_effect=all_status_effects["BITING FLAMES"], status_chance=200, cooldown=6),
+    "CLEANSING FLAMES":
+        Move(name="CLEANSING FLAMES",
+             type=all_types["FIRE"], speed=2, target_self=False,
+             damage_low=8, damage_high=16, aim=110, hit_attempts=1,
+             status_effect=all_status_effects["BURNING"], status_chance=100, rage_cost=30),
 
     # SCHONIPS THE SHOCK SNAKE
     "SNAKE BITE":
@@ -754,7 +786,7 @@ all_moves = {
              status_effect=all_status_effects["SHOCKED"], status_chance=100, cooldown=5),
     "SHED SKIN":
         Move(name="SHED SKIN",
-             type=all_types["PHYSICAL"], speed=1, target_self=True,
+             type=all_types["NULLIFY"], speed=1, target_self=True,
              damage_low=1, damage_high=1, aim=200, hit_attempts=1,
              status_effect=all_status_effects["SNAKE REGENERATION"], status_chance=200, cooldown=6),
     "SHOCK SCREAM":
@@ -762,6 +794,12 @@ all_moves = {
              type=all_types["ELECTRIC"], speed=3, target_self=False,
              damage_low=8, damage_high=10, aim=90, hit_attempts=2,
              status_effect=None, status_chance=0, cooldown=1),
+    "DODGE AND SHOCK":
+        Move(name="DODGE AND SHOCK",
+             type=all_types["PHYSICAL"], speed=5, target_self=True,
+             damage_low=0, damage_high=0, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["SHOCK FENCE"], status_chance=100, rage_cost=25),
+
 
     # PSAWARCA THE PSYCHIC WATER ORCA
     "PSYCHIC CHALLENGE":
@@ -789,6 +827,11 @@ all_moves = {
              type=all_types["WATER"], speed=2, target_self=False,
              damage_low=12, damage_high=18, aim=85, hit_attempts=1,
              status_effect=all_status_effects["WET"], status_chance=100, cooldown=2),
+    "MIND CONTROL":
+        Move(name="MIND CONTROL",
+             type=all_types["PSYCHIC"], speed=2, target_self=False,
+             damage_low=0, damage_high=0, aim=200, hit_attempts=1,
+             status_effect=all_status_effects["CONTROL"], status_chance=90, rage_cost=60),
 
     # SHIGOWI THE WIND GHOST SHAPESHIFTER
     "PHANTOM JAVELINS":
@@ -811,6 +854,10 @@ all_moves = {
         Move(name="RESET VOID", type=all_types["NULLIFY"], speed=5, target_self=True,
              damage_low=3, damage_high=3, aim=200, hit_attempts=1,
              status_effect=all_status_effects["NULLIFICATION"], status_chance=200, cooldown=5),
+    "VOID BLAST":
+        Move(name="VOID BLAST", type=all_types["NULLIFY"], speed=3, target_self=False,
+             damage_low=12, damage_high=12, aim=95, hit_attempts=1,
+             status_effect=None, status_chance=0, rage_cost=20),
 
     # BAMAT THE LARGE MAGICAL BAT
     "BAT BITE":
@@ -833,6 +880,10 @@ all_moves = {
         Move(name="MAGICAL REINFORCEMENT", type=all_types["MAGIC"], speed=5, target_self=True,
              damage_low=0, damage_high=0, aim=200, hit_attempts=1,
              status_effect=all_status_effects["MAGIC SHIELD"], status_chance=200, cooldown=0),
+    "MAGIC BOLTS":
+        Move(name="MAGIC BOLTS", type=all_types["MAGIC"], speed=2, target_self=False,
+             damage_low=8, damage_high=8, aim=90, hit_attempts=2,
+             status_effect=None, status_chance=0, rage_cost=30),
 
 }
 
@@ -841,28 +892,28 @@ all_creatures = [
         Creature(id=0, name="FRAGONIRE", desc="The Mighty Fire Dragon Fragonire",
                  health=60, defense=0, move1=all_moves["FIRE BREATH"], move2=all_moves["DRAGON CLAW"],
                  move3=all_moves["WARMTH"], move4=all_moves["FLIGHT"], move5=all_moves["FIREWALL"],
-                 types=(all_types["FIRE"], all_types["PHYSICAL"])),
+                 types=(all_types["FIRE"], all_types["PHYSICAL"]), rage=40, rage_move=all_moves["CLEANSING FLAMES"]),
 
         Creature(id=1, name="SCHONIPS", desc="The Agile Shock Snake Schonips",
                  health=45, defense=20, move1=all_moves["SNAKE BITE"], move2=all_moves["ELECTRIFICATION"],
                  move3=all_moves["ELECTRIC DISCHARGE"], move4=all_moves["SHED SKIN"], move5=all_moves["SHOCK SCREAM"],
-                 types=(all_types["ELECTRIC"], all_types["PHYSICAL"])),
+                 types=(all_types["ELECTRIC"], all_types["PHYSICAL"]), rage=25, rage_move=all_moves["DODGE AND SHOCK"]),
 
         Creature(id=2, name="PSAWARCA", desc="The Psychic Water-Bending Orca Psawarca",
                  health=65, defense=0, move1=all_moves["PSYCHIC CHALLENGE"], move2=all_moves["WATER CANNON"],
                  move3=all_moves["ILLUSORY SHIELDING"], move4=all_moves["MIRACLE REGEN"], move5=all_moves["WATER WAVE"],
-                 types=(all_types["PSYCHIC"], all_types["WATER"], all_types["PHYSICAL"])),
+                 types=(all_types["PSYCHIC"], all_types["WATER"], all_types["PHYSICAL"]), rage=60, rage_move=all_moves["MIND CONTROL"]),
 
 
         Creature(id=3, name="SHIGOWI", desc="The Ghost of Wind Shapeshifter Shigowi",
                  health=35, defense=25, move1=all_moves["PHANTOM JAVELINS"], move2=all_moves["ESCAPE TO VOID"],
                  move3=all_moves["TRIP OVER"], move4=all_moves["HURRICANE"], move5=all_moves["RESET VOID"],
-                 types=(all_types["GHOST"], all_types["WIND"])),
+                 types=(all_types["GHOST"], all_types["WIND"]), rage=35, rage_move=all_moves["VOID BLAST"]),
 
 
         Creature(id=4, name="BAMAT", desc="The Large Magical Amputee Bat Bamat",
                  health=70, defense=-10, move1=all_moves["BAT BITE"], move2=all_moves["DROP OF BLOOD"],
                  move3=all_moves["STARVE OPPONENT"], move4=all_moves["BLINDING LIGHT"],
                  move5=all_moves["MAGICAL REINFORCEMENT"],
-                 types=(all_types["VAMPIRIC"], all_types["MAGIC"], all_types["PHYSICAL"]))
+                 types=(all_types["VAMPIRIC"], all_types["MAGIC"], all_types["PHYSICAL"]), rage=60, rage_move=all_moves["MAGIC BOLTS"])
 ]

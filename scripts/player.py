@@ -12,7 +12,7 @@ import scripts.creatures as cr
 #       for moves that require different scoring
 
 num_of_creatures = cr.all_creatures.__len__()
-cr_mo_op_multiplier = [[[1.0 for x in range(num_of_creatures)] for y in range(6)] for z in range(num_of_creatures)]
+cr_mo_op_multiplier = [[[1.0 for x in range(num_of_creatures)] for y in range(7)] for z in range(num_of_creatures)]
 
 # now for individual touch...
 
@@ -222,10 +222,10 @@ def score_move(creatures: list[cr.CreatureOccurrence, cr.CreatureOccurrence],
                 (damage_score + status_score) * \
                 cr_mo_op_multiplier[ai.c.id][move_indices[index]][opponent.c.id]
 
-            # if the move makes AI kill itself, reset score!
+            # if the move makes AI kill itself, set score to something bad!
             # for instance, shed skin with 1 health or reset void with 4 or less :P
             if ai.health - damage <= 0:
-                scores[index] = 0
+                scores[index] = -100
             #print(f"score_move final for {move_ai.name} {scores[index]} with cr_mo_op mp "
             #  f"{cr_mo_op_multiplier[ai.c.id][move_indices[index]][opponent.c.id]}")
 
@@ -315,7 +315,8 @@ class Player:
     def __init__(self, id: int, creatures: list[cr.CreatureOccurrence, ...], ai: int = -1):
         self.id = id
         self.creatures = creatures  # player's creatures
-        self.ac = creatures[0]  # active creature
+        self.ac_index = 0
+        self.ac = creatures[self.ac_index]  # active creature
         self.ai = ai  # ai difficulty (-1 means Player is controlled by a human)
         if self.ai > 10:
             self.ai = 10
@@ -362,7 +363,7 @@ class Player:
                         self.assume_blunder_factor = 0.8
             elif op_assumed != -1: # it was incorrect
                 text[2] = f"PLAYER {self.id} WAS WRONG!"
-                text[3] = "BEHAVIOUR PUNISHED!"
+                text[3] = "fBEHAVIOUR PUNISHED!"
 
                 if counter_mode == "c": # aversion increases doubly
                     self.risk_aversion_factor += 0.2
@@ -382,7 +383,7 @@ class Player:
                 self.ac.bs.__animateTextbox__(False)
 
     def __calculateNoveltyFactors__(self, move_roll: int):
-        for ind in range(0, 6):
+        for ind in range(0, 7):
             if ind != move_roll:
 
                 # cap ai level
@@ -407,38 +408,38 @@ class Player:
     # "" stands for normal move, "c" for "countermove" and "cc" for "counter-countermove"
     def __calculateMove__(self, opponent: cr.CreatureOccurrence) -> (int, int, str):
         if self.ai <= 0:  # dumb ai makes random moves
-            move_roll = random.randrange(0, 6)
-            while self.ac.cooldowns[move_roll] >= 1:
-                move_roll = random.randrange(0, 6)
+            move_roll = random.randrange(0, 7)
+            while self.ac.cooldowns[move_roll] >= 1 and self.ac.rage >= self.ac.c.moves[move_roll].rage_cost:
+                move_roll = random.randrange(0, 7)
 
         else:  # ai calculates rewards of each move in every possible scenario
 
-            move_ai_score_sum = [0, 0, 0, 0, 0, 0]
-            opponent_score_sum = [0, 0, 0, 0, 0, 0]
-            rewards_ai = [0, 0, 0, 0, 0, 0]
+            move_ai_score_sum = [0, 0, 0, 0, 0, 0, 0]
+            opponent_score_sum = [0, 0, 0, 0, 0, 0, 0]
+            rewards_ai = [0, 0, 0, 0, 0, 0, 0]
             best_avg_moves_ai_0, best_avg_moves_ai_1 = -1, -1
             best_avg_rewards_ai_0, best_avg_rewards_ai_1 = -100000, -100000
 
-            move_opponent_score_sum = [0, 0, 0, 0, 0, 0]
-            ai_score_sum = [0, 0, 0, 0, 0, 0]
-            n_opponent = [0, 0, 0, 0, 0, 0]
-            rewards_opponent = [0, 0, 0, 0, 0, 0]
+            move_opponent_score_sum = [0, 0, 0, 0, 0, 0, 0]
+            ai_score_sum = [0, 0, 0, 0, 0, 0, 0]
+            n_opponent = [0, 0, 0, 0, 0, 0, 0]
+            rewards_opponent = [0, 0, 0, 0, 0, 0, 0]
             best_avg_move_opponent = -1
             best_avg_move_opponent_reward = -100000
 
-            move_opponent_best_ai_counter_move = [-1, -1, -1, -1, -1, -1]
-            move_opponent_best_ai_counter_move_score = [-100000, -100000, -100000, -100000, -100000, -100000]
+            move_opponent_best_ai_counter_move = [-1, -1, -1, -1, -1, -1, -1]
+            move_opponent_best_ai_counter_move_score = [-100000, -100000, -100000, -100000, -100000, -100000, -100000]
 
-            move_ai_best_opponent_counter_move = [-1, -1, -1, -1, -1, -1]
-            move_ai_best_opponent_counter_move_score = [-100000, -100000, -100000, -100000, -100000, -100000]
+            move_ai_best_opponent_counter_move = [-1, -1, -1, -1, -1, -1, -1]
+            move_ai_best_opponent_counter_move_score = [-100000, -100000, -100000, -100000, -100000, -100000, -100000]
 
             ami = 0
-            while ami < 6:
+            while ami < 7:
                 n = 0
-                if self.ac.cooldowns[ami] <= 0:  # ai move to take into account
+                if self.ac.cooldowns[ami] <= 0 and self.ac.rage >= self.ac.c.moves[ami].rage_cost:  # ai move to take into account
                     omi = 0
-                    while omi < 6:
-                        if opponent.cooldowns[omi] <= 0:  # opponent move to take into account
+                    while omi < 7:
+                        if opponent.cooldowns[omi] <= 0 and opponent.rage >= opponent.c.moves[ami].rage_cost:  # opponent move to take into account
 
                             # calculate move score for moves in pairs
                             a, b = score_move([self.ac, opponent], [ami, omi])
@@ -486,7 +487,7 @@ class Player:
                 ami += 1
 
             # figure out opponent average reward of average (safe) move
-            for ind in range(0, 6):
+            for ind in range(0, 7):
                 if n_opponent[ind] != 0: # relevant moves only (off-cooldown)
                     rewards_opponent[ind] /= n_opponent[ind]
                     if rewards_opponent[ind] > best_avg_move_opponent_reward:
