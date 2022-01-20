@@ -331,7 +331,7 @@ class Player:
             self.random_score_factor_cap = 0
         # modifier larger and larger than 1 the longer the move isn't used
         # if cooldown is high, modifier increases more slowly
-        self.novelty_factor = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        self.novelty_factor = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
     # was guess correct?
     def risk_evaluation(self, op_assumed: int, op_assumed_name: str, op_roll: int, counter_mode: str):
