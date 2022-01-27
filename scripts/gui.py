@@ -265,6 +265,9 @@ class MatchSettingsScene(Scene):
                                 p2_creature_index = self.player_creatures[1][x]
                             player2_creatures.append(cr.CreatureOccurrence(cr.all_creatures[p2_creature_index]))
 
+                    if player1_creatures.__len__() <= 0 or player2_creatures.__len__() <= 0:
+                        return
+
                     player1 = pl.Player(1, player1_creatures, self.player_ai[0])
                     player2 = pl.Player(2, player2_creatures, self.player_ai[1])
 
@@ -1807,7 +1810,7 @@ class BattleScene(Scene):
 
             if not self.player_infobox_up[i]:  # rage counter
                 if p.ai < 0 and p.ac.rage >= p.ac.c.moves[6].rage_cost:
-                    rage_info = f'PRESS "{self.player_button_tips[i][7]}" TO USE "{p.ac.c.moves[6].name}" FOR {p.ac.c.moves[6].rage_cost} RAGE POINTS ({p.ac.rage}/{p.ac.c.rage})'
+                    rage_info = f'PRESS "{self.player_button_tips[i][7]}" TO USE "{p.ac.c.moves[6].name}" FOR {p.ac.c.moves[6].rage_cost} RP ({p.ac.rage}/{p.ac.c.rage})'
 
                 else:
                     rage_info = f'MOVE "{p.ac.c.moves[6].name}" REQUIRES {p.ac.c.moves[6].rage_cost} RAGE POINTS ({p.ac.rage}/{p.ac.c.rage})'
