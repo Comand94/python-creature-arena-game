@@ -378,10 +378,6 @@ class CreatureOccurrence:
                     elif move.type == so.se.damage_mod_type:
                         damage_mod -= so.se.damage_mod
 
-                # if move is healing self, damage_mod strengthens it
-                # if it's self-harming, it weakens it
-                # if damage_mod is negative, reverse is true
-
                 if move.hit_attempts > 1:
                     move_text = f'{self.c.name} USES {move.name} ({i + 1}/{move.hit_attempts})!'
                 else:
@@ -389,9 +385,20 @@ class CreatureOccurrence:
                 self.bs.__animateBattleText__(move_text)
 
                 if move.damage_low < move.damage_high:
-                    damage = random.randrange(move.damage_low, move.damage_high + 1) + damage_mod
+                    damage = random.randrange(move.damage_low, move.damage_high + 1)
                 else:
-                    damage = move.damage_high + damage_mod
+                    damage = move.damage_high
+
+                if damage < 0: # if move is healing self, positive damage_mod strengthens it by lowering the dmg further
+                    damage -= damage_mod
+                    if damage > 0: # if damage_mod is negative, it cannot make the healing move deal damage
+                        damage = 0
+                elif damage > 0: # if move is self-harming, positive damage_mod weakens it by lowering the dmg
+                    damage -= damage_mod
+                    if damage < 0: # if damage_mod is negative, it cannot make the damaging move heal player
+                        damage = 0
+                # if move deals no damage, damage_mod is not applied
+
                 status_chance = move.status_chance
                 status_roll = random.randrange(0, 100)
 
@@ -431,16 +438,13 @@ class CreatureOccurrence:
                 thorn_mod_low += so.se.thorn_damage_low
                 thorn_mod_high += so.se.thorn_damage_high
 
-            # if move is healing opponent, damage_mod weakens it
-            # if move is damaging opponent, damage_mod strengthens it
-            # if damage_mod is negative, reverse is true
-
             hit_chance = move.aim + aim_mod - opponent.c.defense - defense_mod
             print(f"aim {move.aim}, aim mod {aim_mod}, defense {opponent.c.defense}, defense mod {defense_mod}, hit chance {hit_chance}")
             if hit_chance < 0: # fix for double negative
                 hit_chance = 0
 
             damage_multiplier = opponent.__checkTypeRelationship__(move.type)
+            number_of_not_missed = 0
 
             for i in range(0, move.hit_attempts):
                 hit_roll = random.randrange(0, 100)
@@ -462,17 +466,42 @@ class CreatureOccurrence:
 
                 # move connects
                 if hit_roll > 100 - hit_chance:
+                    number_of_not_missed += 1
                     if move.damage_low < move.damage_high: # if damage low is NOT less than damage high, simply apply damage high (bug prevention for random.randrange)
-                        damage = int((random.randrange(move.damage_low, move.damage_high + 1) + damage_mod) * damage_multiplier)
+                        damage = int(random.randrange(move.damage_low, move.damage_high + 1))
                     else:
-                        damage = int((move.damage_high + damage_mod) * damage_multiplier)
+                        damage = int(move.damage_high)
+
+                    if damage < 0:  # if move is healing enemy, positive damage_mod weakens it by increasing the dmg
+                        damage += damage_mod
+                        if damage > 0:  # if damage_mod is negative, it cannot make the healing move deal damage
+                            damage = 0
+                    elif damage > 0:  # if move is harming enemy, positive damage_mod strengthens it by increasing the dmg further
+                        damage += damage_mod
+                        if damage < 0:  # if damage_mod is negative, it cannot make the damaging move heal player
+                            damage = 0
+                    # if move deals no damage, damage_mod is not applied
+                    damage = int(damage * damage_multiplier)
+
                     hit_text = f"TARGET HIT!"
 
                 # graze or miss
                 else:
                     if move.damage_low < move.damage_high:
-                        damage = int((random.randrange(move.damage_low,
-                                      move.damage_high + 1) + damage_mod - move.damage_low) * damage_multiplier)
+                        damage = int(random.randrange(move.damage_low,
+                                      move.damage_high + 1) - move.damage_low)
+
+                        if damage < 0:  # if move is healing enemy, positive damage_mod weakens it by increasing the dmg
+                            damage += damage_mod
+                            if damage > 0:  # if damage_mod is negative, it cannot make the healing move deal damage
+                                damage = 0
+                        elif damage > 0:  # if move is harming enemy, positive damage_mod strengthens it by increasing the dmg further
+                            damage += damage_mod
+                            if damage < 0:  # if damage_mod is negative, it cannot make the damaging move heal player
+                                damage = 0
+                        # if move deals no damage, damage_mod is not applied
+                        damage = int(damage * damage_multiplier)
+
                     else:
                         damage = 0
 
@@ -484,13 +513,15 @@ class CreatureOccurrence:
 
                     if damage != 0:
                         hit_text = f"TARGET GRAZED!"
+                        number_of_not_missed += 1
                     else:
                         hit_text = f"TARGET MISSED!"
 
+                # this code is commented out as it shouldn't be needed now:
                 # prevent being healed by an enemy when he shoots fire at you (yeah, that happened)
                 # the second condition makes it possible to create moves that heal the enemy
-                if damage < 0 and move.damage_low >= 0:
-                    damage = 0
+                # if damage < 0 and move.damage_low >= 0:
+                #    damage = 0
 
                 self.bs.__animateRoll__(hit_roll, hit_chance, False)
                 if hit_roll > 100 - hit_chance:
@@ -508,6 +539,7 @@ class CreatureOccurrence:
                     status_multiplier = opponent.__checkTypeRelationship__(move.status_effect.type)
                     status_chance = int(move.status_chance * status_multiplier)
                     status_roll = random.randrange(0, 100)
+
                     # status proc
                     self.bs.__animateRoll__(status_roll, status_chance, True)
                     if status_roll > 100 - status_chance:
@@ -526,9 +558,10 @@ class CreatureOccurrence:
                 print(f"{opponent.c.name} retaliates!")
                 self.bs.__animateBattleText__(f"{opponent.c.name} RETALIATES!")
                 self.__takeDamage__(thorn_damage)
-            elif thorn_mod_low < 0 and damage > 0:  # heal yourself if you got a hit or a graze
+            elif thorn_damage < 0 and number_of_not_missed > 0:  # heal yourself if you got a hit or a graze
+                # thorn_damage *= number_of_hits # uncomment for higher leech with more hits
                 print(f"{self.c.name} leeches health from it's opponent!")
-                self.bs.__animateBattleText__(f"{self.c.name} LEECHES HEALTH FROM OPPONENT!")
+                self.bs.__animateBattleText__(f"{self.c.name} LEECHES HEALTH!")
                 self.__takeDamage__(thorn_damage)
 
         # textbox out

@@ -196,7 +196,7 @@ class Battle:
                 moves_first = 1
                 moves_second = 2
             else:
-                roll = random.randrange(0, 100)
+                roll = random.randrange(0, 101)
                 if roll <= 49:
                     moves_first = 1
                     moves_second = 2
@@ -334,7 +334,7 @@ class Battle:
             if self.p1.ac.health <= 0:
                 self.bs.__animateTextbox__(True)
                 self.bs.__animateBattleText__(f"{self.p1.ac.c.name} FAINTED!")
-                if  self.p1.creatures.__len__() > (self.p1.ac_index + 1) is not None:
+                if  len(self.p1.creatures) > (self.p1.ac_index + 1) is not None:
                     self.p1.ac_index += 1
                     self.p1.ac = self.p1.creatures[self.p1.ac_index]
                     self.p1.ac.__joinBattleScene__(self.bs)
@@ -346,7 +346,7 @@ class Battle:
             if self.p2.ac.health <= 0:
                 self.bs.__animateTextbox__(True)
                 self.bs.__animateBattleText__(f"{self.p2.ac.c.name} FAINTED!")
-                if self.p2.creatures.__len__() > (self.p2.ac_index + 1) is not None:
+                if len(self.p2.creatures) > (self.p2.ac_index + 1) is not None:
                     self.p2.ac_index += 1
                     self.p2.ac = self.p2.creatures[self.p2.ac_index]
                     self.p2.ac.__joinBattleScene__(self.bs)

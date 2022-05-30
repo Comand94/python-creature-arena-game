@@ -11,7 +11,7 @@ import scripts.creatures as cr
 #       first I will fill the list with multiplier 1 for each move, then I will change it individually
 #       for moves that require different scoring
 
-num_of_creatures = cr.all_creatures.__len__()
+num_of_creatures = len(cr.all_creatures)
 cr_mo_op_multiplier = [[[1.0 for x in range(num_of_creatures)] for y in range(7)] for z in range(num_of_creatures)]
 
 # now for individual touch...
@@ -407,6 +407,7 @@ class Player:
     # returns move index and assumed opponent move if risking, else -1, and a string code "" "c" or "cc"
     # "" stands for normal move, "c" for "countermove" and "cc" for "counter-countermove"
     def __calculateMove__(self, opponent: cr.CreatureOccurrence) -> (int, int, str):
+
         if self.ai <= 0:  # dumb ai makes random moves
             move_roll = random.randrange(0, 7)
             while self.ac.cooldowns[move_roll] >= 1 or self.ac.rage < self.ac.c.moves[move_roll].rage_cost:

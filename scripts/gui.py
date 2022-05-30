@@ -173,8 +173,8 @@ class GUI:
                         self.speed = self.allowed_speed[self.current_speed_index]
                     if event.key == self.keys.RIGHT or event.key == self.keys.D[0] or event.key == self.keys.D[1]:
                         self.current_speed_index = self.current_speed_index + 1
-                        if self.current_speed_index >= self.allowed_speed.__len__():
-                            self.current_speed_index = self.allowed_speed.__len__() - 1
+                        if self.current_speed_index >= len(self.allowed_speed):
+                            self.current_speed_index = len(self.allowed_speed) - 1
                         self.speed = self.allowed_speed[self.current_speed_index]
                     if event.key == self.keys.INFO[0] or event.key == self.keys.INFO[1]:
                         self.skip_animations = not self.skip_animations
@@ -253,19 +253,19 @@ class MatchSettingsScene(Scene):
                     for x in (0, 1, 2):
                         if self.player_creatures[0][x] != -2:
                             if self.player_creatures[0][x] == -1:
-                                p1_creature_index = random.randrange(0, cr.all_creatures.__len__())
+                                p1_creature_index = random.randrange(0, len(cr.all_creatures))
                             else:
                                 p1_creature_index = self.player_creatures[0][x]
                             player1_creatures.append(cr.CreatureOccurrence(cr.all_creatures[p1_creature_index]))
 
                         if self.player_creatures[1][x] != -2:
                             if self.player_creatures[1][x] == -1:
-                                p2_creature_index = random.randrange(0, cr.all_creatures.__len__())
+                                p2_creature_index = random.randrange(0, len(cr.all_creatures))
                             else:
                                 p2_creature_index = self.player_creatures[1][x]
                             player2_creatures.append(cr.CreatureOccurrence(cr.all_creatures[p2_creature_index]))
 
-                    if player1_creatures.__len__() <= 0 or player2_creatures.__len__() <= 0:
+                    if len(player1_creatures) <= 0 or len(player2_creatures) <= 0:
                         return
 
                     player1 = pl.Player(1, player1_creatures, self.player_ai[0])
@@ -287,7 +287,7 @@ class MatchSettingsScene(Scene):
                         self.player_ai[0] = -1
                 elif self.selected_y >= 2: # creature
                     self.player_creatures[0][self.selected_y - 2] += 1
-                    if self.player_creatures[0][self.selected_y - 2] >= cr.all_creatures.__len__():
+                    if self.player_creatures[0][self.selected_y - 2] >= len(cr.all_creatures):
                         self.player_creatures[0][self.selected_y - 2] = -2
 
             if k == self.gui.keys.RIGHT or k == self.gui.keys.D[0] or k == self.gui.keys.D[1]: # change right side
@@ -297,7 +297,7 @@ class MatchSettingsScene(Scene):
                         self.player_ai[1] = -1
                 elif self.selected_y >= 2: # creature
                     self.player_creatures[1][self.selected_y - 2] += 1
-                    if self.player_creatures[1][self.selected_y - 2] >= cr.all_creatures.__len__():
+                    if self.player_creatures[1][self.selected_y - 2] >= len(cr.all_creatures):
                         self.player_creatures[1][self.selected_y - 2] = -2
 
     def __displayScene__(self):
@@ -423,9 +423,9 @@ class MainMenuScene(Scene):
                 if self.selected_y == 1: # start index
                     player1_creatures = player2_creatures = []
 
-                    random_creature_index = random.randrange(0, cr.all_creatures.__len__())
+                    random_creature_index = random.randrange(0, len(cr.all_creatures))
                     player1_creatures.append(cr.CreatureOccurrence(cr.all_creatures[random_creature_index]))
-                    random_creature_index = random.randrange(0, cr.all_creatures.__len__())
+                    random_creature_index = random.randrange(0, len(cr.all_creatures))
                     player2_creatures.append(cr.CreatureOccurrence(cr.all_creatures[random_creature_index]))
 
                     player1 = pl.Player(1, player1_creatures, -1)
@@ -490,7 +490,7 @@ class BattleScene(Scene):
         self.player_infobox_up = [False, False]
 
         # infobox selected options
-        self.player_max_x = [cr.all_types.__len__(), 6, 1]
+        self.player_max_x = [len(cr.all_types), 6, 1]
         self.player_max_y = [1, 9, 1]
         self.player_max_z = 3
         self.player_selected_x = [[0, 0, 0], [0, 0, 0]]
@@ -546,7 +546,7 @@ class BattleScene(Scene):
             if self.animation_now[p_id] > self.animation_before[p_id] + random_time:
 
                 # constraints
-                if not self.creature_idle_images_reverse[p_id] and self.creature_idle_images_index[p_id] + 1 >= self.creature_idle_images[0].__len__():
+                if not self.creature_idle_images_reverse[p_id] and self.creature_idle_images_index[p_id] + 1 >= len(self.creature_idle_images[0]):
                     self.creature_idle_images_reverse[p_id] = True
                 elif self.creature_idle_images_reverse[p_id] and self.creature_idle_images_index[p_id] -1 <= -1:
                     self.creature_idle_images_reverse[p_id] = False
@@ -598,11 +598,11 @@ class BattleScene(Scene):
             for k in self.gui.keys.keys_down:
                 if self.testing and not self.player_infobox_up[i]: # creature index controls with infobox down
                     if k == self.gui.keys.A[i]:
-                        self.player_selected_creature[i] = (self.player_selected_creature[i] - 1) % p.creatures.__len__()
+                        self.player_selected_creature[i] = (self.player_selected_creature[i] - 1) % len(p.creatures)
                         p.ac = p.creatures[self.player_selected_creature[i]]
                         self.__updateCreatureImages__()
                     if k == self.gui.keys.D[i]:
-                        self.player_selected_creature[i] = (self.player_selected_creature[i] + 1) % p.creatures.__len__()
+                        self.player_selected_creature[i] = (self.player_selected_creature[i] + 1) % len(p.creatures)
                         p.ac = p.creatures[self.player_selected_creature[i]]
                         self.__updateCreatureImages__()
                     if k == self.gui.keys.INFO[i]:
@@ -1298,8 +1298,8 @@ class BattleScene(Scene):
                 self.gui.__blitText__(f"CHANGE CREATURE", 50, 456 + 1008 * p_id, 950, self.gui.colors.BLACK)
                 if not self.player_infobox_up[p_id]:
                     self.gui.__blitText__(
-                        f"{p.creatures[(self.player_selected_creature[p_id] - 1) % p.creatures.__len__()].c.name} << {self.player_button_tips[p_id][3]}       "
-                        f"{self.player_button_tips[p_id][5]} >> {p.creatures[(self.player_selected_creature[p_id] + 1) % p.creatures.__len__()].c.name}",
+                        f"{p.creatures[(self.player_selected_creature[p_id] - 1) % len(p.creatures)].c.name} << {self.player_button_tips[p_id][3]}       "
+                        f"{self.player_button_tips[p_id][5]} >> {p.creatures[(self.player_selected_creature[p_id] + 1) % len(p.creatures)].c.name}",
                         30,
                         456 + 1008 * p_id, 1000, self.gui.colors.BLACK)
 
@@ -1362,14 +1362,14 @@ class BattleScene(Scene):
                     if x <= 2:  # own status
                         status_index = (y - 4) * 3 + x
                         base_x = 40
-                        if status_index < p.ac.active_statuses.__len__():
+                        if status_index < len(p.ac.active_statuses):
                             so = p.ac.active_statuses[status_index]
                         else:
                             so = None
                     else:
                         status_index = (y - 4) * 3 + x - 3
                         base_x = 55
-                        if status_index < opponent.ac.active_statuses.__len__():
+                        if status_index < len(opponent.ac.active_statuses):
                             so = opponent.ac.active_statuses[status_index]
                         else:
                             so = None
@@ -1478,7 +1478,7 @@ class BattleScene(Scene):
                 text = ""
 
                 for relationship in (type.weaknesses, type.resistances, type.immunities):
-                    if relationship.__len__() > 0:
+                    if len(relationship) > 0:
                         self.gui.__blitText__(relationship_text[r_index], 20, 713 + x_mod2, y_coordinate, self.gui.colors.PINK)
                         y_coordinate += y_inc_2
 
@@ -1809,11 +1809,16 @@ class BattleScene(Scene):
             i = p.id - 1
 
             if not self.player_infobox_up[i]:  # rage counter
-                if p.ai < 0 and p.ac.rage >= p.ac.c.moves[6].rage_cost:
-                    rage_info = f'PRESS "{self.player_button_tips[i][7]}" TO USE "{p.ac.c.moves[6].name}" FOR {p.ac.c.moves[6].rage_cost} RP ({p.ac.rage}/{p.ac.c.rage})'
+                color = self.gui.colors.BLEEDING_WHITE # standard color for non-ready
 
-                else:
+                if p.ai < 0 and p.ac.rage >= p.ac.c.moves[6].rage_cost: # player and can use
+                    color = self.gui.colors.WHITE
+                    rage_info = f'PRESS "{self.player_button_tips[i][7]}" TO USE "{p.ac.c.moves[6].name}" FOR {p.ac.c.moves[6].rage_cost} RP ({p.ac.rage}/{p.ac.c.rage})'
+                elif p.ac.rage >= p.ac.c.moves[6].rage_cost: # not player and can use
+                    color = self.gui.colors.WHITE
+                    rage_info = f'MOVE "{p.ac.c.moves[6].name}" IS READY FOR {p.ac.c.moves[6].rage_cost} RP ({p.ac.rage}/{p.ac.c.rage})'
+                else: # can't use
                     rage_info = f'MOVE "{p.ac.c.moves[6].name}" REQUIRES {p.ac.c.moves[6].rage_cost} RAGE POINTS ({p.ac.rage}/{p.ac.c.rage})'
 
                 self.gui.__blitText__(rage_info, 23, 480 + 960 * i, 819,
-                                    self.gui.colors.WHITE)
+                                    color)
