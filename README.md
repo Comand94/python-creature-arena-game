@@ -1,6 +1,8 @@
 # python-creature-arena-game
 A strategic game against AI where you command your creatures in Pokemon-style battles.
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/0cpC8WF8HAo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 BELOW ARE MOST FEATURES AS OF 20.01.2022
 
 Game window features:
